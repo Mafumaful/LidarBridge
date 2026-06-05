@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.10)
 project(lio_scan_monitor)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -40,18 +40,20 @@ add_executable(lio_scan_monitor_node
   src/lio_scan_monitor_node.cpp
 )
 target_compile_features(lio_scan_monitor_node PUBLIC cxx_std_17)
-target_link_libraries(lio_scan_monitor_node scan_analysis terminal_display)
-ament_target_dependencies(lio_scan_monitor_node
-  rclcpp
-  builtin_interfaces
-  nav_msgs
-  sensor_msgs
-  std_msgs
-  geometry_msgs
-  tf2
-  tf2_geometry_msgs
-  tf2_ros
-  visualization_msgs
+target_link_libraries(lio_scan_monitor_node
+  PRIVATE
+    scan_analysis
+    terminal_display
+    rclcpp::rclcpp
+    builtin_interfaces::builtin_interfaces
+    nav_msgs::nav_msgs
+    sensor_msgs::sensor_msgs
+    std_msgs::std_msgs
+    geometry_msgs::geometry_msgs
+    tf2::tf2
+    tf2_geometry_msgs::tf2_geometry_msgs
+    tf2_ros::tf2_ros
+    visualization_msgs::visualization_msgs
 )
 
 install(

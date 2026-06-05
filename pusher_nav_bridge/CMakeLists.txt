@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.10)
 project(pusher_nav_bridge)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -25,8 +25,13 @@ add_executable(pusher_nav_bridge_node
   src/pusher_nav_bridge_node.cpp
 )
 target_compile_features(pusher_nav_bridge_node PUBLIC cxx_std_17)
-target_link_libraries(pusher_nav_bridge_node pusher_nav_algorithms)
-ament_target_dependencies(pusher_nav_bridge_node rclcpp nav_msgs sensor_msgs)
+target_link_libraries(pusher_nav_bridge_node
+  PRIVATE
+    pusher_nav_algorithms
+    rclcpp::rclcpp
+    nav_msgs::nav_msgs
+    sensor_msgs::sensor_msgs
+)
 
 install(
   TARGETS pusher_nav_algorithms pusher_nav_bridge_node

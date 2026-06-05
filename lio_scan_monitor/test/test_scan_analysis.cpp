@@ -5,6 +5,7 @@
 #include <limits>
 #include <set>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace
@@ -19,7 +20,7 @@ bool near(double lhs, double rhs)
 
 const lio_scan_monitor::DirectionObstacle & find_direction(
   const std::vector<lio_scan_monitor::DirectionObstacle> & obstacles,
-  const std::string & name)
+  std::string_view name)
 {
   for (const auto & obstacle : obstacles) {
     if (obstacle.name == name) {

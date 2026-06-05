@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.10)
 project(rs485_tester)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
@@ -18,7 +18,7 @@ target_include_directories(rs485_test_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-ament_target_dependencies(rs485_test_node rclcpp)
+target_link_libraries(rs485_test_node PRIVATE rclcpp::rclcpp)
 
 install(
   TARGETS rs485_test_node

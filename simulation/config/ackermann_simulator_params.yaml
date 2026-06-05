@@ -1,0 +1,33 @@
+ackermann_simulator_node:
+  ros__parameters:
+    cmd_vel_topic: /cmd_vel
+    odom_topic: /fastlio2/lio_odom
+    path_topic: /simulation/path
+    marker_topic: /simulation/vehicle_markers
+    map_frame_id: map
+    base_frame_id: base_link
+
+    publish_rate_hz: 50.0
+    cmd_timeout_sec: 0.5
+    max_speed_mps: 2.0
+    max_acceleration_mps2: 2.0
+    max_deceleration_mps2: 3.0
+    max_steering_rate_degps: 180.0
+    max_steering_angle_deg: 30.0
+
+    wheelbase_m: 0.9
+    track_width_m: 0.65
+    rear_axle_to_front_m: 0.65
+    rear_axle_to_back_m: 0.25
+    rear_axle_to_base_link_x_m: 0.0
+    vehicle_height_m: 0.22
+    wheel_diameter_m: 0.22
+    wheel_thickness_m: 0.08
+
+    initial_x_m: 0.0
+    initial_y_m: 0.0
+    initial_yaw_deg: 0.0
+
+    publish_path: true
+    publish_visualization: true
+    max_path_points: 500
