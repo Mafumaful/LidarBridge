@@ -3,19 +3,76 @@
 `simulation` 提供一个可配置的阿克曼小车仿真节点。它订阅 `/cmd_vel`，按阿克曼运动学积分车体位姿，并发布：
 
 - `nav_msgs/msg/Odometry`，默认话题 `/fastlio2/lio_odom`
+- Nav2 标准地图话题 `/map`
 - `map -> base_link` TF
 - 历史轨迹 `nav_msgs/msg/Path`，默认 `/simulation/path`
 - 车体可视化 `visualization_msgs/msg/MarkerArray`，默认 `/simulation/vehicle_markers`
 
 这样可以直接喂给 `lio_scan_monitor` 的 odom 输入，也可以在 RViz2 里观察小车运动。
 
+另外，这个包现在也提供一个交互式路径生成器：读取 Nav2 地图，鼠标绘制关键点，实时生成 cubic spline，并把关键点和采样路径保存成 C++ 常用格式。
+
 ## 话题
 
 - 订阅 `/cmd_vel`，类型 `geometry_msgs/msg/Twist`
 - 发布 `/fastlio2/lio_odom`，类型 `nav_msgs/msg/Odometry`
+- 发布 `/map`，类型 `nav_msgs/msg/OccupancyGrid`
+- 发布 `/map_metadata`，类型 `nav_msgs/msg/MapMetaData`
 - 发布 `/simulation/path`，类型 `nav_msgs/msg/Path`
 - 发布 `/simulation/vehicle_markers`，类型 `visualization_msgs/msg/MarkerArray`
 - 广播 TF：`map -> base_link`
+
+## 地图格式
+
+`simulation` 现在自带一套 Nav2 兼容地图文件：
+
+- `maps/simulation_map.yaml`
+- `maps/simulation_map.pgm`
+
+这是 Nav2 `map_server` 常用的标准格式，后续如果你本机装了 `nav2_map_server`，同一套文件也可以直接复用。
+
+## 路径生成器
+
+路径生成器配置文件：
+
+- `config/path_generator_params.yaml`
+
+默认功能：
+
+- 根据配置里的 `map_yaml_file` 加载 Nav2 地图
+- 鼠标左键在地图上绘制关键点
+- 实时用 cubic spline 生成平滑路径
+- 保存关键点和路径采样点，坐标直接使用地图上的世界坐标
+
+默认输出：
+
+- `paths/generated_path.yaml`
+- `paths/generated_path.csv`
+
+其中：
+
+- `generated_path.yaml` 适合 C++ 用 `yaml-cpp` 直接读取
+- `generated_path.csv` 适合 C++ 用常规文件流读取
+
+交互说明：
+
+- 左键：添加关键点
+- 右键或 `u`：撤销上一个点
+- `c`：清空所有点
+- `s`：保存路径
+- `q`：退出
+
+启动方式：
+
+```bash
+ros2 launch simulation path_generator.launch.py
+```
+
+如果你要指定别的配置文件：
+
+```bash
+ros2 launch simulation path_generator.launch.py config_file:=/abs/path/to/your_params.yaml
+```
 
 ## 运动模型
 
@@ -66,11 +123,30 @@ source install/setup.bash
 ros2 launch simulation ackermann_simulator.launch.py
 ```
 
+如果希望启动小车仿真并发布 Nav2 地图：
+
+```bash
+ros2 launch simulation simulation_with_map.launch.py
+```
+
 如果希望同时拉起仿真节点和 RViz2，并加载
 `src/LidarBridge/projectConfigs/simulationConifg.rviz`：
 
 ```bash
 ros2 launch simulation simulation_with_rviz.launch.py
+```
+
+如果希望一键拉起：
+
+- 小车仿真
+- Nav2 地图发布
+- RViz2
+- `yuyi_controller` Pure Pursuit 控制器
+
+可以直接运行：
+
+```bash
+ros2 launch simulation simulation_with_controller.launch.py
 ```
 
 给一个前进带转弯的控制：
@@ -82,7 +158,8 @@ ros2 topic pub /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.8}, angular: {z:
 ## RViz2 观察
 
 1. `Fixed Frame` 设为 `map`
-2. 添加 `TF`
-3. 添加 `Path`，选择 `/simulation/path`
-4. 添加 `MarkerArray`，选择 `/simulation/vehicle_markers`
-5. 如果你同时启动 `lio_scan_monitor`，它的 `odom_topic` 可以直接保持默认 `/fastlio2/lio_odom`
+2. 地图会从 `/map` 自动显示
+3. 添加 `TF`
+4. 添加 `Path`，选择 `/simulation/path`
+5. 添加 `MarkerArray`，选择 `/simulation/vehicle_markers`
+6. 如果你同时启动 `lio_scan_monitor`，它的 `odom_topic` 可以直接保持默认 `/fastlio2/lio_odom`

@@ -1,0 +1,10 @@
+map_yaml_file: ../maps/simulation_map.yaml
+output_yaml_file: ../paths/generated_path.yaml
+output_csv_file: ../paths/generated_path.csv
+sample_interval_m: 0.10
+load_existing_path: true
+
+figure:
+  title: Simulation Path Generator
+  show_grid: true
+  show_control_point_labels: true

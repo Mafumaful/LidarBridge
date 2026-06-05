@@ -37,7 +37,14 @@ install(
 )
 
 install(
-  DIRECTORY config launch
+  PROGRAMS
+    scripts/nav2_map_publisher.py
+    scripts/path_generator.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(
+  DIRECTORY config launch maps paths
   DESTINATION share/${PROJECT_NAME}
 )
 

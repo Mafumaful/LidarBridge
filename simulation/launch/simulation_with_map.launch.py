@@ -10,49 +10,35 @@ import os
 
 def generate_launch_description():
     package_share = get_package_share_directory("simulation")
-    simulation_with_map_launch = os.path.join(
-        package_share,
-        "launch",
-        "simulation_with_map.launch.py",
-    )
-
-    workspace_root = os.path.abspath(
-        os.path.join(package_share, "..", "..", "..", "..")
-    )
-    default_rviz_config = os.path.join(
-        workspace_root,
-        "src",
-        "LidarBridge",
-        "projectConfigs",
-        "simulationConifg.rviz",
-    )
+    simulator_launch = os.path.join(package_share, "launch", "ackermann_simulator.launch.py")
     default_map_yaml = os.path.join(package_share, "maps", "simulation_map.yaml")
 
-    rviz_config = LaunchConfiguration("rviz_config")
     map_yaml_file = LaunchConfiguration("map_yaml_file")
 
     return LaunchDescription(
         [
-            DeclareLaunchArgument(
-                "rviz_config",
-                default_value=default_rviz_config,
-                description="RViz2 config file",
-            ),
             DeclareLaunchArgument(
                 "map_yaml_file",
                 default_value=default_map_yaml,
                 description="Nav2-compatible map yaml file to publish as /map",
             ),
             IncludeLaunchDescription(
-                PythonLaunchDescriptionSource(simulation_with_map_launch),
-                launch_arguments={"map_yaml_file": map_yaml_file}.items(),
+                PythonLaunchDescriptionSource(simulator_launch)
             ),
             Node(
-                package="rviz2",
-                executable="rviz2",
-                name="rviz2",
-                arguments=["-d", rviz_config],
+                package="simulation",
+                executable="nav2_map_publisher.py",
+                name="nav2_map_publisher_node",
                 output="screen",
+                parameters=[
+                    {
+                        "map_yaml_file": map_yaml_file,
+                        "map_topic": "/map",
+                        "map_metadata_topic": "/map_metadata",
+                        "map_frame_id": "map",
+                        "republish_period_sec": 2.0,
+                    }
+                ],
             ),
         ]
     )

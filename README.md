@@ -12,6 +12,7 @@
 |----|------|----------|
 | `lio_scan_monitor` | 订阅 FAST-LIO odom 和 `/scan`，输出八方向最近障碍物，并可发布 RViz marker | 调试 LiDAR 点是否在车体坐标中正确、确认左右方向是否符合现场 |
 | `simulation` | 订阅 `/cmd_vel`，模拟阿克曼小车运动，发布 `/fastlio2/lio_odom`、`map -> base_link` TF、轨迹和车体 marker | 本地联调 `lio_scan_monitor`、RViz2 和导航链路时的仿真输入 |
+| `yuyi_controller` | 加载生成路径，读取 odom，用 Pure Pursuit 生成 `/cmd_vel` 跟踪命令 | 仿真环境里的路径跟踪控制器 |
 | `rs485_tester` | 测试 RS485 串口打开、串口参数和基础字节发送 | 只验证串口硬件，不是推料机导航业务协议 |
 | `pusher_nav_bridge` | 编译 `poses.txt` 路线、估计侧向护栏距离、生成推料机 payload | 当前导航桥接主包，dry-run 打印 payload |
 
