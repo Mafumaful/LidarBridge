@@ -1,0 +1,15 @@
+lio_scan_monitor_node:
+  ros__parameters:
+    odom_topic: /fastlio2/lio_odom
+    scan_topic: /scan
+    base_frame_id: base_link
+    scan_sector_width_deg: 45.0
+    log_period_ms: 500
+    terminal_use_color: true
+    terminal_refresh_in_place: true
+    enable_visualization: true
+    enable_sector_visualization: true
+    visualization_topic: /lio_scan_monitor/obstacles
+    marker_lifetime_sec: 1.0
+    sector_marker_radius_m: 3.0
+    sector_fill_alpha: 0.08

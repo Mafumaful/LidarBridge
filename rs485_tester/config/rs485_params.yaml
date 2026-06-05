@@ -1,0 +1,19 @@
+rs485_test_node:
+  ros__parameters:
+    device: "/dev/ttyUSB0"
+    baud_rate: 115200
+    data_bits: 8
+    parity: "none"
+    stop_bits: 1
+    flow_control: "none"
+    enable_rs485_mode: false
+    rs485_delay_before_send_us: 0
+    rs485_delay_after_send_us: 0
+    rs485_rx_during_tx: false
+    send_interval_ms: 1000
+    slave_id: 1
+    request_type: "read_holding_registers"
+    start_address: 0
+    register_count: 2
+    write_value: 1
+    write_values: "0x0001,0x0002"

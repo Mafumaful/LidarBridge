@@ -1,0 +1,27 @@
+pusher_nav_bridge_node:
+  ros__parameters:
+    poses_file: "maps/poses.txt"
+    odom_topic: "/fastlio2/lio_odom"
+    scan_topic: "/scan"
+    follow_side: "left"
+    travel_direction: "forward"
+    poses_reference_type: "vehicle_center"
+    target_left_distance_m: 1.10
+    target_right_distance_m: 1.10
+    min_point_gap_m: 0.05
+    resample_step_m: 0.50
+    heading_window_m: 0.50
+    rdp_tolerance_m: 0.15
+    min_segment_length_m: 0.50
+    side_roi_x_min_m: -2.0
+    side_roi_x_max_m: 3.0
+    side_roi_y_min_m: 0.2
+    side_roi_y_max_m: 5.0
+    side_distance_gate_m: 1.0
+    ransac_inlier_threshold_m: 0.08
+    min_side_inliers: 8
+    line_heading_gate_deg: 45.0
+    travel_speed_mmps: 300
+    rotation_speed: 200
+    ultrasonic_work_distance_mm: 900
+    ultrasonic_adjust_distance_mm: 100

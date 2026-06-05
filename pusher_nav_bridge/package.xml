@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>pusher_nav_bridge</name>
+  <version>0.0.1</version>
+  <description>Route, side-distance, and dry-run protocol bridge for pusher edge-following.</description>
+  <maintainer email="dev@example.com">dev</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>nav_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>launch</depend>
+  <depend>launch_ros</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
