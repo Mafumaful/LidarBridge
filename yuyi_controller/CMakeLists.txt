@@ -17,13 +17,18 @@ add_executable(yuyi_controller_node
   src/yuyi_controller_node.cpp
 )
 target_compile_features(yuyi_controller_node PUBLIC cxx_std_17)
+target_include_directories(yuyi_controller_node PRIVATE
+  ${geometry_msgs_INCLUDE_DIRS}
+  ${nav_msgs_INCLUDE_DIRS}
+  ${visualization_msgs_INCLUDE_DIRS}
+)
 target_link_libraries(yuyi_controller_node
   PRIVATE
     ament_index_cpp::ament_index_cpp
-    geometry_msgs::geometry_msgs
-    nav_msgs::nav_msgs
+    ${geometry_msgs_LIBRARIES}
+    ${nav_msgs_LIBRARIES}
     rclcpp::rclcpp
-    visualization_msgs::visualization_msgs
+    ${visualization_msgs_LIBRARIES}
     yaml-cpp
 )
 

@@ -25,12 +25,17 @@ add_executable(pusher_nav_bridge_node
   src/pusher_nav_bridge_node.cpp
 )
 target_compile_features(pusher_nav_bridge_node PUBLIC cxx_std_17)
+target_include_directories(pusher_nav_bridge_node PRIVATE
+  ${rclcpp_INCLUDE_DIRS}
+  ${nav_msgs_INCLUDE_DIRS}
+  ${sensor_msgs_INCLUDE_DIRS}
+)
 target_link_libraries(pusher_nav_bridge_node
   PRIVATE
     pusher_nav_algorithms
     rclcpp::rclcpp
-    nav_msgs::nav_msgs
-    sensor_msgs::sensor_msgs
+    ${nav_msgs_LIBRARIES}
+    ${sensor_msgs_LIBRARIES}
 )
 
 install(

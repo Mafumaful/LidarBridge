@@ -40,20 +40,32 @@ add_executable(lio_scan_monitor_node
   src/lio_scan_monitor_node.cpp
 )
 target_compile_features(lio_scan_monitor_node PUBLIC cxx_std_17)
+target_include_directories(lio_scan_monitor_node PRIVATE
+  ${builtin_interfaces_INCLUDE_DIRS}
+  ${rclcpp_INCLUDE_DIRS}
+  ${nav_msgs_INCLUDE_DIRS}
+  ${sensor_msgs_INCLUDE_DIRS}
+  ${std_msgs_INCLUDE_DIRS}
+  ${geometry_msgs_INCLUDE_DIRS}
+  ${tf2_INCLUDE_DIRS}
+  ${tf2_geometry_msgs_INCLUDE_DIRS}
+  ${tf2_ros_INCLUDE_DIRS}
+  ${visualization_msgs_INCLUDE_DIRS}
+)
 target_link_libraries(lio_scan_monitor_node
   PRIVATE
     scan_analysis
     terminal_display
     rclcpp::rclcpp
-    builtin_interfaces::builtin_interfaces
-    nav_msgs::nav_msgs
-    sensor_msgs::sensor_msgs
-    std_msgs::std_msgs
-    geometry_msgs::geometry_msgs
     tf2::tf2
     tf2_geometry_msgs::tf2_geometry_msgs
     tf2_ros::tf2_ros
-    visualization_msgs::visualization_msgs
+    ${builtin_interfaces_LIBRARIES}
+    ${nav_msgs_LIBRARIES}
+    ${sensor_msgs_LIBRARIES}
+    ${std_msgs_LIBRARIES}
+    ${geometry_msgs_LIBRARIES}
+    ${visualization_msgs_LIBRARIES}
 )
 
 install(

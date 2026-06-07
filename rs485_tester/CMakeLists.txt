@@ -17,6 +17,7 @@ target_compile_features(rs485_test_node PUBLIC cxx_std_17)
 target_include_directories(rs485_test_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
+  ${rclcpp_INCLUDE_DIRS}
 )
 target_link_libraries(rs485_test_node PRIVATE rclcpp::rclcpp)
 

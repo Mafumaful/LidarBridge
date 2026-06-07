@@ -42,6 +42,50 @@ def wrap_angle(angle_rad: float) -> float:
     return angle_rad
 
 
+def occupancy_from_pixel(
+    pixel_value: np.ndarray,
+    negate: bool,
+    occupied_thresh: float,
+    free_thresh: float,
+    mode: str,
+) -> np.ndarray:
+    normalized = pixel_value.astype(np.float32) / 255.0
+    occupancy = normalized if negate else 1.0 - normalized
+
+    if mode == "raw":
+        return np.clip(np.rint(occupancy * 100.0), 0.0, 100.0).astype(np.int16)
+
+    if mode == "scale":
+        scaled = np.clip((occupancy - free_thresh) / (occupied_thresh - free_thresh), 0.0, 1.0)
+        values = np.clip(np.rint(scaled * 100.0), 0.0, 100.0).astype(np.int16)
+        values[occupancy >= occupied_thresh] = 100
+        values[occupancy <= free_thresh] = 0
+        return values
+
+    values = np.full(pixel_value.shape, -1, dtype=np.int16)
+    values[occupancy >= occupied_thresh] = 100
+    values[occupancy <= free_thresh] = 0
+    return values
+
+
+def display_array_from_map_image(
+    pixel_value: np.ndarray,
+    negate: bool,
+    occupied_thresh: float,
+    free_thresh: float,
+    mode: str,
+) -> np.ndarray:
+    occupancy = occupancy_from_pixel(pixel_value, negate, occupied_thresh, free_thresh, mode)
+    display = np.full(pixel_value.shape, 127, dtype=np.uint8)
+    known_mask = occupancy >= 0
+    display[known_mask] = np.clip(
+        np.rint(255.0 - occupancy[known_mask].astype(np.float32) * 255.0 / 100.0),
+        0.0,
+        255.0,
+    ).astype(np.uint8)
+    return display
+
+
 @dataclass
 class PathGeneratorConfig:
     map_yaml_file: Path
@@ -227,7 +271,20 @@ class PathGeneratorApp:
 
         image_path = resolve_path(str(map_config["image"]), map_yaml_file.parent)
         image = Image.open(image_path).convert("L")
-        image_array = np.flipud(np.asarray(image))
+        mode = str(map_config.get("mode", "trinary")).lower()
+        if mode not in {"trinary", "scale", "raw"}:
+            raise RuntimeError(f"Unsupported map mode '{mode}'")
+
+        negate = bool(map_config.get("negate", 0))
+        occupied_thresh = float(map_config.get("occupied_thresh", 0.65))
+        free_thresh = float(map_config.get("free_thresh", 0.196))
+        image_array = display_array_from_map_image(
+            np.flipud(np.asarray(image)),
+            negate,
+            occupied_thresh,
+            free_thresh,
+            mode,
+        )
 
         return {
             "image_array": image_array,
