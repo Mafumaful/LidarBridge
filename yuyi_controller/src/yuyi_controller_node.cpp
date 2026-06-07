@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-#include "ament_index_cpp/get_package_share_path.hpp"
+#include "ament_index_cpp/get_package_share_directory.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/point.hpp"
 #include "geometry_msgs/msg/twist.hpp"
@@ -215,7 +215,7 @@ public:
     stop_at_goal_ = declare_parameter<bool>("stop_at_goal", true);
 
     const auto package_share_dir = std::filesystem::path(
-      ament_index_cpp::get_package_share_path("yuyi_controller"));
+      ament_index_cpp::get_package_share_directory("yuyi_controller"));
     const auto configured_path_file =
       std::filesystem::path(declare_parameter<std::string>("path_file", ""));
     path_file_ = resolve_path_file(configured_path_file, package_share_dir);
