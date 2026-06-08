@@ -6,6 +6,7 @@
 - 读取 `map -> base_link` TF，获取小车当前位置和朝向
 - 根据路径执行 Pure Pursuit 跟踪
 - 发布 `/cmd_vel` 给仿真阿克曼小车
+- 发布 `/yuyi_controller/cmd_vel_marker` 用于 RViz2 可视化命令速度矢量
 
 ## 输入
 
@@ -34,6 +35,7 @@ src/LidarBridge/simulation/paths/generated_path.yaml
 - `/cmd_vel`，类型 `geometry_msgs/msg/Twist`
 - `/yuyi_controller/reference_path`，类型 `nav_msgs/msg/Path`
 - `/yuyi_controller/lookahead_target`，类型 `visualization_msgs/msg/Marker`
+- `/yuyi_controller/cmd_vel_marker`，类型 `visualization_msgs/msg/Marker`
 
 ## 关键参数
 
@@ -44,6 +46,9 @@ src/LidarBridge/simulation/paths/generated_path.yaml
 - `min_lookahead_distance_m`：最小 lookahead
 - `max_lookahead_distance_m`：最大 lookahead
 - `goal_tolerance_m`：终点停止容差
+- `cmd_vel_marker_topic`：命令速度矢量 marker 话题
+- `show_cmd_vel_marker`：是否发布命令速度矢量 marker
+- `cmd_vel_marker_scale`：命令速度矢量长度缩放系数
 
 ## 编译
 

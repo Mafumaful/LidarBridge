@@ -175,6 +175,20 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /yuyi_controller/lookahead_target
       Value: true
+    - Class: rviz_default_plugins/Marker
+      Enabled: true
+      Name: CmdVelMarker
+      Namespaces:
+        Value: true
+        yuyi_controller_cmd_vel: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /yuyi_controller/cmd_vel_marker
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48

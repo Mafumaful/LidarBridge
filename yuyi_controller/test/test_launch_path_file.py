@@ -87,6 +87,9 @@ class LaunchPathFileBehaviorTest(unittest.TestCase):
         ros_params = params["yuyi_controller_node"]["ros__parameters"]
         self.assertEqual(ros_params["map_frame_id"], "map")
         self.assertEqual(ros_params["base_frame_id"], "base_link")
+        self.assertEqual(ros_params["cmd_vel_marker_topic"], "/yuyi_controller/cmd_vel_marker")
+        self.assertTrue(ros_params["show_cmd_vel_marker"])
+        self.assertEqual(ros_params["cmd_vel_marker_scale"], 1.0)
         self.assertEqual(
             ros_params["path_file"],
             "src/LidarBridge/simulation/paths/generated_path.yaml",

@@ -52,6 +52,14 @@ double yaw_from_quaternion(double x, double y, double z, double w)
   return std::atan2(siny_cosp, cosy_cosp);
 }
 
+geometry_msgs::msg::Quaternion quaternion_from_yaw(double yaw_rad)
+{
+  geometry_msgs::msg::Quaternion quaternion;
+  quaternion.z = std::sin(yaw_rad * 0.5);
+  quaternion.w = std::cos(yaw_rad * 0.5);
+  return quaternion;
+}
+
 double distance_xy(const Pose2D & pose, const PathPoint & point)
 {
   return std::hypot(point.x_m - pose.x_m, point.y_m - pose.y_m);
@@ -203,6 +211,10 @@ public:
     path_topic_ = declare_parameter<std::string>("path_topic", "/yuyi_controller/reference_path");
     target_marker_topic_ = declare_parameter<std::string>(
       "target_marker_topic", "/yuyi_controller/lookahead_target");
+    cmd_vel_marker_topic_ = declare_parameter<std::string>(
+      "cmd_vel_marker_topic", "/yuyi_controller/cmd_vel_marker");
+    show_cmd_vel_marker_ = declare_parameter<bool>("show_cmd_vel_marker", true);
+    cmd_vel_marker_scale_ = declare_parameter<double>("cmd_vel_marker_scale", 1.0);
     controller_rate_hz_ = declare_parameter<double>("controller_rate_hz", 20.0);
     lookahead_time_sec_ = declare_parameter<double>("lookahead_time_sec", 1.5);
     min_lookahead_distance_m_ = declare_parameter<double>("min_lookahead_distance_m", 0.6);
@@ -243,6 +255,10 @@ public:
     path_publisher_ = create_publisher<nav_msgs::msg::Path>(path_topic_, rclcpp::QoS(1).transient_local());
     target_marker_publisher_ = create_publisher<visualization_msgs::msg::Marker>(
       target_marker_topic_, 10);
+    if (show_cmd_vel_marker_) {
+      cmd_vel_marker_publisher_ = create_publisher<visualization_msgs::msg::Marker>(
+        cmd_vel_marker_topic_, 10);
+    }
 
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -422,6 +438,7 @@ private:
     cmd.linear.x = linear_x;
     cmd.angular.z = angular_z;
     cmd_publisher_->publish(cmd);
+    publish_cmd_vel_marker(linear_x);
   }
 
   void publish_stop()
@@ -448,6 +465,41 @@ private:
     }
 
     path_publisher_->publish(path);
+  }
+
+  void publish_cmd_vel_marker(double linear_x)
+  {
+    if (!show_cmd_vel_marker_ || !cmd_vel_marker_publisher_) {
+      return;
+    }
+
+    visualization_msgs::msg::Marker marker;
+    marker.header.frame_id = map_frame_id_;
+    marker.header.stamp = now();
+    marker.ns = "yuyi_controller_cmd_vel";
+    marker.id = 0;
+    marker.type = visualization_msgs::msg::Marker::ARROW;
+
+    if (std::abs(linear_x) <= 1e-4) {
+      marker.action = visualization_msgs::msg::Marker::DELETE;
+      cmd_vel_marker_publisher_->publish(marker);
+      return;
+    }
+
+    marker.action = visualization_msgs::msg::Marker::ADD;
+    marker.pose.position.x = current_pose_.x_m;
+    marker.pose.position.y = current_pose_.y_m;
+    marker.pose.position.z = 0.2;
+    const auto arrow_yaw = linear_x >= 0.0 ? current_pose_.yaw_rad : current_pose_.yaw_rad + kPi;
+    marker.pose.orientation = quaternion_from_yaw(arrow_yaw);
+    marker.scale.x = std::max(0.05, std::abs(linear_x) * cmd_vel_marker_scale_);
+    marker.scale.y = 0.08;
+    marker.scale.z = 0.08;
+    marker.color.a = 1.0F;
+    marker.color.r = linear_x >= 0.0 ? 0.1F : 0.95F;
+    marker.color.g = 0.85F;
+    marker.color.b = linear_x >= 0.0 ? 0.95F : 0.2F;
+    cmd_vel_marker_publisher_->publish(marker);
   }
 
   void publish_target_marker(const PathPoint & target, bool goal_reached)
@@ -483,6 +535,7 @@ private:
   std::string cmd_vel_topic_;
   std::string path_topic_;
   std::string target_marker_topic_;
+  std::string cmd_vel_marker_topic_;
   std::filesystem::path path_file_;
   double controller_rate_hz_{20.0};
   double lookahead_time_sec_{1.5};
@@ -493,8 +546,10 @@ private:
   double max_acceleration_mps2_{0.5};
   double max_deceleration_mps2_{0.8};
   double max_angular_speed_radps_{1.5};
+  double cmd_vel_marker_scale_{1.0};
   bool loop_path_{false};
   bool stop_at_goal_{true};
+  bool show_cmd_vel_marker_{true};
 
   std::vector<PathPoint> path_points_;
   Pose2D current_pose_;
@@ -505,6 +560,7 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_publisher_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_publisher_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr target_marker_publisher_;
+  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr cmd_vel_marker_publisher_;
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
   rclcpp::TimerBase::SharedPtr timer_;
