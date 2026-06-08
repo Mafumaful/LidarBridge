@@ -1,10 +1,19 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from ament_index_python.packages import get_package_share_directory
 
 import os
+
+
+def build_controller_launch_arguments(controller_params_file: str, path_file: str):
+    launch_arguments = {
+        "params_file": controller_params_file,
+    }
+    if path_file:
+        launch_arguments["path_file"] = path_file
+    return launch_arguments
 
 
 def generate_launch_description():
@@ -33,14 +42,6 @@ def generate_launch_description():
         "simulationConifg.rviz",
     )
     default_map_yaml = os.path.join(simulation_share, "maps", "simulation_map.yaml")
-    default_path_file = os.path.join(
-        workspace_root,
-        "src",
-        "LidarBridge",
-        "simulation",
-        "paths",
-        "generated_path.yaml",
-    )
     default_controller_params = os.path.join(
         controller_share,
         "config",
@@ -66,8 +67,8 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "path_file",
-                default_value=default_path_file,
-                description="Generated path yaml or csv file for the controller",
+                default_value="",
+                description="Optional generated path yaml or csv file for the controller",
             ),
             DeclareLaunchArgument(
                 "controller_params_file",
@@ -81,12 +82,16 @@ def generate_launch_description():
                     "map_yaml_file": map_yaml_file,
                 }.items(),
             ),
-            IncludeLaunchDescription(
-                PythonLaunchDescriptionSource(controller_launch),
-                launch_arguments={
-                    "params_file": controller_params_file,
-                    "path_file": path_file,
-                }.items(),
+            OpaqueFunction(
+                function=lambda context: [
+                    IncludeLaunchDescription(
+                        PythonLaunchDescriptionSource(controller_launch),
+                        launch_arguments=build_controller_launch_arguments(
+                            controller_params_file.perform(context),
+                            path_file.perform(context),
+                        ).items(),
+                    )
+                ]
             ),
         ]
     )

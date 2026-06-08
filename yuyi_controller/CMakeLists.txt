@@ -11,6 +11,7 @@ find_package(ament_cmake REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
@@ -38,5 +39,13 @@ install(
   DIRECTORY config launch
   DESTINATION share/${PROJECT_NAME}
 )
+
+if(BUILD_TESTING)
+  enable_testing()
+  add_test(
+    NAME test_yuyi_controller_launch_path_file
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_launch_path_file.py
+  )
+endif()
 
 ament_package()

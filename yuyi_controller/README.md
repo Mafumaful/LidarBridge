@@ -20,11 +20,13 @@
 config/yuyi_controller_params.yaml
 ```
 
-默认 launch 会把路径文件指向：
+默认配置会把路径文件指向：
 
 ```text
 src/LidarBridge/simulation/paths/generated_path.yaml
 ```
+
+默认 launch 不会覆盖这个配置；只有显式传入 `path_file:=...` 时才会覆盖。
 
 ## 输出
 

@@ -5,7 +5,7 @@ yuyi_controller_node:
     path_topic: /yuyi_controller/reference_path
     target_marker_topic: /yuyi_controller/lookahead_target
 
-    path_file: install/simulation/share/simulation/paths/generated_path.yaml
+    path_file: src/LidarBridge/simulation/paths/generated_path.yaml
 
     controller_rate_hz: 20.0
     lookahead_time_sec: 1.5
