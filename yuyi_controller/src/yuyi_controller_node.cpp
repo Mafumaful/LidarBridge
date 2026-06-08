@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <stdexcept>
@@ -202,8 +203,10 @@ std::vector<PathPoint> load_path_points(const std::filesystem::path & path_file)
 class YuyiControllerNode : public rclcpp::Node
 {
 public:
-  YuyiControllerNode()
-  : Node("yuyi_controller_node")
+  using CmdPublishObserver = std::function<void(double, double)>;
+
+  explicit YuyiControllerNode(const rclcpp::NodeOptions & options = rclcpp::NodeOptions())
+  : Node("yuyi_controller_node", options)
   {
     map_frame_id_ = declare_parameter<std::string>("map_frame_id", "map");
     base_frame_id_ = declare_parameter<std::string>("base_frame_id", "base_link");
@@ -282,6 +285,19 @@ public:
       cmd_vel_topic_.c_str(),
       loop_path_ ? "true" : "false",
       kAnsiReset);
+  }
+
+  ~YuyiControllerNode() override
+  {
+    timer_.reset();
+    if (cmd_publisher_) {
+      publish_stop();
+    }
+  }
+
+  void set_cmd_publish_observer(CmdPublishObserver observer)
+  {
+    cmd_publish_observer_ = std::move(observer);
   }
 
 private:
@@ -444,6 +460,9 @@ private:
     cmd.linear.x = linear_x;
     cmd.angular.z = angular_z;
     cmd_publisher_->publish(cmd);
+    if (cmd_publish_observer_) {
+      cmd_publish_observer_(linear_x, angular_z);
+    }
     publish_cmd_vel_marker(linear_x);
   }
 
@@ -544,9 +563,9 @@ private:
   std::string cmd_vel_marker_topic_;
   std::filesystem::path path_file_;
   double controller_rate_hz_{20.0};
-  double lookahead_time_sec_{1.5};
-  double min_lookahead_distance_m_{0.6};
-  double max_lookahead_distance_m_{2.0};
+  double lookahead_time_sec_{0.6};
+  double min_lookahead_distance_m_{0.2};
+  double max_lookahead_distance_m_{0.8};
   double goal_tolerance_m_{0.2};
   double max_speed_mps_{0.8};
   double max_acceleration_mps2_{0.5};
@@ -568,6 +587,7 @@ private:
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_publisher_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr target_marker_publisher_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr cmd_vel_marker_publisher_;
+  CmdPublishObserver cmd_publish_observer_;
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
   rclcpp::TimerBase::SharedPtr timer_;
@@ -575,6 +595,7 @@ private:
 
 }  // namespace yuyi_controller
 
+#ifndef YUYI_CONTROLLER_DISABLE_MAIN
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
@@ -591,3 +612,4 @@ int main(int argc, char ** argv)
   rclcpp::shutdown();
   return 0;
 }
+#endif

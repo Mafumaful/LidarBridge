@@ -63,6 +63,28 @@ if(BUILD_TESTING)
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   )
   add_test(NAME test_yuyi_controller_path_utils COMMAND test_yuyi_controller_path_utils)
+  add_executable(test_yuyi_controller_shutdown_stop
+    test/test_shutdown_stop.cpp
+  )
+  target_compile_features(test_yuyi_controller_shutdown_stop PUBLIC cxx_std_17)
+  target_include_directories(test_yuyi_controller_shutdown_stop PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  )
+  target_link_libraries(test_yuyi_controller_shutdown_stop
+    PRIVATE
+      ament_index_cpp::ament_index_cpp
+      rclcpp::rclcpp
+      tf2::tf2
+      tf2_ros::tf2_ros
+      yaml-cpp
+  )
+  target_link_ros2_package_compat(test_yuyi_controller_shutdown_stop geometry_msgs)
+  target_link_ros2_package_compat(test_yuyi_controller_shutdown_stop nav_msgs)
+  target_link_ros2_package_compat(test_yuyi_controller_shutdown_stop visualization_msgs)
+  add_test(
+    NAME test_yuyi_controller_shutdown_stop
+    COMMAND test_yuyi_controller_shutdown_stop
+  )
   add_test(
     NAME test_yuyi_controller_launch_path_file
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_launch_path_file.py
