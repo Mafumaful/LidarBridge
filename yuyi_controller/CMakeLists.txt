@@ -13,6 +13,8 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
 
@@ -28,6 +30,8 @@ target_link_libraries(yuyi_controller_node
   PRIVATE
     ament_index_cpp::ament_index_cpp
     rclcpp::rclcpp
+    tf2::tf2
+    tf2_ros::tf2_ros
     yaml-cpp
 )
 target_link_ros2_package_compat(yuyi_controller_node geometry_msgs)

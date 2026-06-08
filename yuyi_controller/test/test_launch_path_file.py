@@ -85,11 +85,20 @@ class LaunchPathFileBehaviorTest(unittest.TestCase):
             params = yaml.safe_load(stream)
 
         ros_params = params["yuyi_controller_node"]["ros__parameters"]
+        self.assertEqual(ros_params["map_frame_id"], "map")
+        self.assertEqual(ros_params["base_frame_id"], "base_link")
         self.assertEqual(
             ros_params["path_file"],
             "src/LidarBridge/simulation/paths/generated_path.yaml",
         )
         self.assertFalse(ros_params["loop_path"])
+
+    def test_package_declares_tf_dependencies(self):
+        package_xml_path = REPO_ROOT / "yuyi_controller/package.xml"
+        package_xml = package_xml_path.read_text(encoding="utf-8")
+
+        self.assertIn("<depend>tf2</depend>", package_xml)
+        self.assertIn("<depend>tf2_ros</depend>", package_xml)
 
 
 if __name__ == "__main__":

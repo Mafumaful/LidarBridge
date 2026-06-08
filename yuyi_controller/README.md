@@ -3,13 +3,14 @@
 `yuyi_controller` 是一个基于 Pure Pursuit 的路径跟踪控制包。它负责：
 
 - 加载 `simulation/path_generator` 生成的路径文件
-- 订阅 odom，读取小车当前位置和朝向
+- 读取 `map -> base_link` TF，获取小车当前位置和朝向
 - 根据路径执行 Pure Pursuit 跟踪
 - 发布 `/cmd_vel` 给仿真阿克曼小车
 
 ## 输入
 
-- `odom_topic`，默认 `/fastlio2/lio_odom`
+- `map_frame_id`，默认 `map`
+- `base_frame_id`，默认 `base_link`
 - `path_file`，支持：
   - `generated_path.yaml`
   - `generated_path.csv`

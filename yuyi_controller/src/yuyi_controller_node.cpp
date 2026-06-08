@@ -15,9 +15,11 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/point.hpp"
 #include "geometry_msgs/msg/twist.hpp"
-#include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "tf2/exceptions.hpp"
+#include "tf2_ros/buffer.hpp"
+#include "tf2_ros/transform_listener.hpp"
 #include "visualization_msgs/msg/marker.hpp"
 #include "yuyi_controller/path_types.hpp"
 #include "yuyi_controller/path_utils.hpp"
@@ -195,7 +197,8 @@ public:
   YuyiControllerNode()
   : Node("yuyi_controller_node")
   {
-    odom_topic_ = declare_parameter<std::string>("odom_topic", "/fastlio2/lio_odom");
+    map_frame_id_ = declare_parameter<std::string>("map_frame_id", "map");
+    base_frame_id_ = declare_parameter<std::string>("base_frame_id", "base_link");
     cmd_vel_topic_ = declare_parameter<std::string>("cmd_vel_topic", "/cmd_vel");
     path_topic_ = declare_parameter<std::string>("path_topic", "/yuyi_controller/reference_path");
     target_marker_topic_ = declare_parameter<std::string>(
@@ -241,10 +244,8 @@ public:
     target_marker_publisher_ = create_publisher<visualization_msgs::msg::Marker>(
       target_marker_topic_, 10);
 
-    odom_subscription_ = create_subscription<nav_msgs::msg::Odometry>(
-      odom_topic_,
-      rclcpp::QoS(10),
-      std::bind(&YuyiControllerNode::odom_callback, this, std::placeholders::_1));
+    tf_buffer_ = std::make_unique<tf2_ros::Buffer>(get_clock());
+    tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
     timer_ = create_wall_timer(
       std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -255,27 +256,46 @@ public:
 
     RCLCPP_INFO(
       get_logger(),
-      "%sLoaded %zu path points from %s; odom='%s', cmd_vel='%s', loop_path=%s%s",
+      "%sLoaded %zu path points from %s; tf=%s->%s, cmd_vel='%s', loop_path=%s%s",
       kAnsiCyan,
       path_points_.size(),
       path_file_.string().c_str(),
-      odom_topic_.c_str(),
+      map_frame_id_.c_str(),
+      base_frame_id_.c_str(),
       cmd_vel_topic_.c_str(),
       loop_path_ ? "true" : "false",
       kAnsiReset);
   }
 
 private:
-  void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg)
+  bool update_current_pose_from_tf()
   {
-    current_pose_.x_m = msg->pose.pose.position.x;
-    current_pose_.y_m = msg->pose.pose.position.y;
-    current_pose_.yaw_rad = yaw_from_quaternion(
-      msg->pose.pose.orientation.x,
-      msg->pose.pose.orientation.y,
-      msg->pose.pose.orientation.z,
-      msg->pose.pose.orientation.w);
-    has_odom_ = true;
+    try {
+      const auto transform = tf_buffer_->lookupTransform(
+        map_frame_id_,
+        base_frame_id_,
+        tf2::TimePointZero);
+      current_pose_.x_m = transform.transform.translation.x;
+      current_pose_.y_m = transform.transform.translation.y;
+      current_pose_.yaw_rad = yaw_from_quaternion(
+        transform.transform.rotation.x,
+        transform.transform.rotation.y,
+        transform.transform.rotation.z,
+        transform.transform.rotation.w);
+      return true;
+    } catch (const tf2::TransformException & ex) {
+      RCLCPP_WARN_THROTTLE(
+        get_logger(),
+        *get_clock(),
+        2000,
+        "%swaiting for TF %s->%s: %s%s",
+        kAnsiYellow,
+        map_frame_id_.c_str(),
+        base_frame_id_.c_str(),
+        ex.what(),
+        kAnsiReset);
+      return false;
+    }
   }
 
   void control_step()
@@ -286,9 +306,7 @@ private:
       std::max(1e-3, (now - last_control_time_).seconds());
     last_control_time_ = now;
 
-    if (!has_odom_) {
-      RCLCPP_WARN_THROTTLE(
-        get_logger(), *get_clock(), 2000, "%swaiting for odom%s", kAnsiYellow, kAnsiReset);
+    if (!update_current_pose_from_tf()) {
       publish_stop();
       return;
     }
@@ -415,7 +433,7 @@ private:
   void publish_reference_path()
   {
     nav_msgs::msg::Path path;
-    path.header.frame_id = "map";
+    path.header.frame_id = map_frame_id_;
     path.header.stamp = now();
     path.poses.reserve(path_points_.size());
 
@@ -435,7 +453,7 @@ private:
   void publish_target_marker(const PathPoint & target, bool goal_reached)
   {
     visualization_msgs::msg::Marker marker;
-    marker.header.frame_id = "map";
+    marker.header.frame_id = map_frame_id_;
     marker.header.stamp = now();
     marker.ns = "yuyi_controller";
     marker.id = 0;
@@ -460,7 +478,8 @@ private:
     target_marker_publisher_->publish(marker);
   }
 
-  std::string odom_topic_;
+  std::string map_frame_id_;
+  std::string base_frame_id_;
   std::string cmd_vel_topic_;
   std::string path_topic_;
   std::string target_marker_topic_;
@@ -479,15 +498,15 @@ private:
 
   std::vector<PathPoint> path_points_;
   Pose2D current_pose_;
-  bool has_odom_{false};
   std::size_t nearest_index_{0U};
   double commanded_speed_mps_{0.0};
   rclcpp::Time last_control_time_{0, 0, RCL_ROS_TIME};
 
-  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_subscription_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_publisher_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_publisher_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr target_marker_publisher_;
+  std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
 
