@@ -5,6 +5,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/ros2_compat.cmake)
+
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(nav_msgs REQUIRED)
@@ -25,18 +27,13 @@ add_executable(pusher_nav_bridge_node
   src/pusher_nav_bridge_node.cpp
 )
 target_compile_features(pusher_nav_bridge_node PUBLIC cxx_std_17)
-target_include_directories(pusher_nav_bridge_node PRIVATE
-  ${rclcpp_INCLUDE_DIRS}
-  ${nav_msgs_INCLUDE_DIRS}
-  ${sensor_msgs_INCLUDE_DIRS}
-)
 target_link_libraries(pusher_nav_bridge_node
   PRIVATE
     pusher_nav_algorithms
     rclcpp::rclcpp
-    ${nav_msgs_LIBRARIES}
-    ${sensor_msgs_LIBRARIES}
 )
+target_link_ros2_package_compat(pusher_nav_bridge_node nav_msgs)
+target_link_ros2_package_compat(pusher_nav_bridge_node sensor_msgs)
 
 install(
   TARGETS pusher_nav_algorithms pusher_nav_bridge_node

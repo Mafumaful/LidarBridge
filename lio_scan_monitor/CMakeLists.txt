@@ -5,6 +5,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/ros2_compat.cmake)
+
 find_package(ament_cmake REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -40,18 +42,6 @@ add_executable(lio_scan_monitor_node
   src/lio_scan_monitor_node.cpp
 )
 target_compile_features(lio_scan_monitor_node PUBLIC cxx_std_17)
-target_include_directories(lio_scan_monitor_node PRIVATE
-  ${builtin_interfaces_INCLUDE_DIRS}
-  ${rclcpp_INCLUDE_DIRS}
-  ${nav_msgs_INCLUDE_DIRS}
-  ${sensor_msgs_INCLUDE_DIRS}
-  ${std_msgs_INCLUDE_DIRS}
-  ${geometry_msgs_INCLUDE_DIRS}
-  ${tf2_INCLUDE_DIRS}
-  ${tf2_geometry_msgs_INCLUDE_DIRS}
-  ${tf2_ros_INCLUDE_DIRS}
-  ${visualization_msgs_INCLUDE_DIRS}
-)
 target_link_libraries(lio_scan_monitor_node
   PRIVATE
     scan_analysis
@@ -60,13 +50,13 @@ target_link_libraries(lio_scan_monitor_node
     tf2::tf2
     tf2_geometry_msgs::tf2_geometry_msgs
     tf2_ros::tf2_ros
-    ${builtin_interfaces_LIBRARIES}
-    ${nav_msgs_LIBRARIES}
-    ${sensor_msgs_LIBRARIES}
-    ${std_msgs_LIBRARIES}
-    ${geometry_msgs_LIBRARIES}
-    ${visualization_msgs_LIBRARIES}
 )
+target_link_ros2_package_compat(lio_scan_monitor_node builtin_interfaces)
+target_link_ros2_package_compat(lio_scan_monitor_node nav_msgs)
+target_link_ros2_package_compat(lio_scan_monitor_node sensor_msgs)
+target_link_ros2_package_compat(lio_scan_monitor_node std_msgs)
+target_link_ros2_package_compat(lio_scan_monitor_node geometry_msgs)
+target_link_ros2_package_compat(lio_scan_monitor_node visualization_msgs)
 
 install(
   TARGETS scan_analysis terminal_display lio_scan_monitor_node

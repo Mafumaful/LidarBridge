@@ -5,6 +5,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/ros2_compat.cmake)
+
 find_package(ament_cmake REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -17,20 +19,15 @@ add_executable(yuyi_controller_node
   src/yuyi_controller_node.cpp
 )
 target_compile_features(yuyi_controller_node PUBLIC cxx_std_17)
-target_include_directories(yuyi_controller_node PRIVATE
-  ${geometry_msgs_INCLUDE_DIRS}
-  ${nav_msgs_INCLUDE_DIRS}
-  ${visualization_msgs_INCLUDE_DIRS}
-)
 target_link_libraries(yuyi_controller_node
   PRIVATE
     ament_index_cpp::ament_index_cpp
-    ${geometry_msgs_LIBRARIES}
-    ${nav_msgs_LIBRARIES}
     rclcpp::rclcpp
-    ${visualization_msgs_LIBRARIES}
     yaml-cpp
 )
+target_link_ros2_package_compat(yuyi_controller_node geometry_msgs)
+target_link_ros2_package_compat(yuyi_controller_node nav_msgs)
+target_link_ros2_package_compat(yuyi_controller_node visualization_msgs)
 
 install(
   TARGETS yuyi_controller_node
