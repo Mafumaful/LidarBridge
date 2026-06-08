@@ -90,6 +90,10 @@ class LaunchPathFileBehaviorTest(unittest.TestCase):
         self.assertEqual(ros_params["cmd_vel_marker_topic"], "/yuyi_controller/cmd_vel_marker")
         self.assertTrue(ros_params["show_cmd_vel_marker"])
         self.assertEqual(ros_params["cmd_vel_marker_scale"], 1.0)
+        self.assertEqual(ros_params["lookahead_time_sec"], 0.6)
+        self.assertEqual(ros_params["min_lookahead_distance_m"], 0.2)
+        self.assertEqual(ros_params["max_lookahead_distance_m"], 0.8)
+        self.assertEqual(ros_params["max_lateral_acceleration_mps2"], 0.25)
         self.assertEqual(
             ros_params["path_file"],
             "src/LidarBridge/simulation/paths/generated_path.yaml",

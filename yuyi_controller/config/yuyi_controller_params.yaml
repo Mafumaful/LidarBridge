@@ -12,14 +12,15 @@ yuyi_controller_node:
     path_file: src/LidarBridge/simulation/paths/generated_path.yaml
 
     controller_rate_hz: 20.0
-    lookahead_time_sec: 1.5
-    min_lookahead_distance_m: 0.6
-    max_lookahead_distance_m: 2.0
+    lookahead_time_sec: 0.6
+    min_lookahead_distance_m: 0.2
+    max_lookahead_distance_m: 0.8
     goal_tolerance_m: 0.2
 
     max_speed_mps: 0.8
     max_acceleration_mps2: 0.5
     max_deceleration_mps2: 0.8
+    max_lateral_acceleration_mps2: 0.25
     max_angular_speed_radps: 1.5
 
     loop_path: false

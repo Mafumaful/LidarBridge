@@ -48,9 +48,18 @@ void loop_path_never_triggers_goal_stop()
 void loop_path_uses_cruise_speed()
 {
   const auto speed = yuyi_controller::path_utils::target_speed_mps(
-    std::numeric_limits<double>::infinity(), 0.8, 0.8, true);
+    std::numeric_limits<double>::infinity(), 0.8, 0.8, 0.0, 0.25, true);
 
   assert(std::fabs(speed - 0.8) < 1e-9);
+}
+
+void high_curvature_reduces_target_speed()
+{
+  const auto speed = yuyi_controller::path_utils::target_speed_mps(
+    std::numeric_limits<double>::infinity(), 0.8, 0.8, 1.0, 0.25, true);
+
+  assert(speed < 0.8);
+  assert(std::fabs(speed - 0.5) < 1e-9);
 }
 
 }  // namespace
@@ -61,5 +70,6 @@ int main()
   loop_path_lookahead_wraps_to_path_start();
   loop_path_never_triggers_goal_stop();
   loop_path_uses_cruise_speed();
+  high_curvature_reduces_target_speed();
   return 0;
 }

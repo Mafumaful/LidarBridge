@@ -82,14 +82,25 @@ inline double target_speed_mps(
   double remaining_distance_m,
   double max_speed_mps,
   double max_deceleration_mps2,
+  double path_curvature,
+  double max_lateral_acceleration_mps2,
   bool loop_path)
 {
-  if (loop_path) {
-    return max_speed_mps;
+  auto target_speed = max_speed_mps;
+
+  if (!loop_path) {
+    const auto braking_speed = std::sqrt(
+      std::max(0.0, 2.0 * max_deceleration_mps2 * remaining_distance_m));
+    target_speed = std::min(target_speed, braking_speed);
   }
-  const auto braking_speed = std::sqrt(
-    std::max(0.0, 2.0 * max_deceleration_mps2 * remaining_distance_m));
-  return std::min(max_speed_mps, braking_speed);
+
+  if (max_lateral_acceleration_mps2 > 0.0 && std::abs(path_curvature) > 1e-6) {
+    const auto curvature_limited_speed = std::sqrt(
+      max_lateral_acceleration_mps2 / std::abs(path_curvature));
+    target_speed = std::min(target_speed, curvature_limited_speed);
+  }
+
+  return target_speed;
 }
 
 }  // namespace yuyi_controller::path_utils

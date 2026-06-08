@@ -216,13 +216,14 @@ public:
     show_cmd_vel_marker_ = declare_parameter<bool>("show_cmd_vel_marker", true);
     cmd_vel_marker_scale_ = declare_parameter<double>("cmd_vel_marker_scale", 1.0);
     controller_rate_hz_ = declare_parameter<double>("controller_rate_hz", 20.0);
-    lookahead_time_sec_ = declare_parameter<double>("lookahead_time_sec", 1.5);
-    min_lookahead_distance_m_ = declare_parameter<double>("min_lookahead_distance_m", 0.6);
-    max_lookahead_distance_m_ = declare_parameter<double>("max_lookahead_distance_m", 2.0);
+    lookahead_time_sec_ = declare_parameter<double>("lookahead_time_sec", 0.6);
+    min_lookahead_distance_m_ = declare_parameter<double>("min_lookahead_distance_m", 0.2);
+    max_lookahead_distance_m_ = declare_parameter<double>("max_lookahead_distance_m", 0.8);
     goal_tolerance_m_ = declare_parameter<double>("goal_tolerance_m", 0.2);
     max_speed_mps_ = declare_parameter<double>("max_speed_mps", 0.8);
     max_acceleration_mps2_ = declare_parameter<double>("max_acceleration_mps2", 0.5);
     max_deceleration_mps2_ = declare_parameter<double>("max_deceleration_mps2", 0.8);
+    max_lateral_acceleration_mps2_ = declare_parameter<double>("max_lateral_acceleration_mps2", 0.25);
     max_angular_speed_radps_ = declare_parameter<double>("max_angular_speed_radps", 1.5);
     loop_path_ = declare_parameter<bool>("loop_path", false);
     stop_at_goal_ = declare_parameter<bool>("stop_at_goal", true);
@@ -355,7 +356,7 @@ private:
     const auto curvature = std::abs(effective_lookahead_m) <= 1e-6 ?
       0.0 :
       (2.0 * local_y) / (effective_lookahead_m * effective_lookahead_m);
-    const auto target_speed_mps = compute_target_speed(remaining_distance_m);
+    const auto target_speed_mps = compute_target_speed(remaining_distance_m, curvature);
     commanded_speed_mps_ = move_towards(
       commanded_speed_mps_,
       target_speed_mps,
@@ -413,10 +414,15 @@ private:
     return std::clamp(dynamic_distance, min_lookahead_distance_m_, max_lookahead_distance_m_);
   }
 
-  double compute_target_speed(double remaining_distance_m) const
+  double compute_target_speed(double remaining_distance_m, double curvature) const
   {
     return path_utils::target_speed_mps(
-      remaining_distance_m, max_speed_mps_, max_deceleration_mps2_, loop_path_);
+      remaining_distance_m,
+      max_speed_mps_,
+      max_deceleration_mps2_,
+      curvature,
+      max_lateral_acceleration_mps2_,
+      loop_path_);
   }
 
   double move_towards(double current, double target, double max_delta) const
@@ -545,6 +551,7 @@ private:
   double max_speed_mps_{0.8};
   double max_acceleration_mps2_{0.5};
   double max_deceleration_mps2_{0.8};
+  double max_lateral_acceleration_mps2_{0.25};
   double max_angular_speed_radps_{1.5};
   double cmd_vel_marker_scale_{1.0};
   bool loop_path_{false};
