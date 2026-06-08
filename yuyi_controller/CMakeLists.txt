@@ -20,6 +20,10 @@ add_executable(yuyi_controller_node
   src/yuyi_controller_node.cpp
 )
 target_compile_features(yuyi_controller_node PUBLIC cxx_std_17)
+target_include_directories(yuyi_controller_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
 target_link_libraries(yuyi_controller_node
   PRIVATE
     ament_index_cpp::ament_index_cpp
@@ -36,12 +40,25 @@ install(
 )
 
 install(
+  DIRECTORY include/
+  DESTINATION include
+)
+
+install(
   DIRECTORY config launch
   DESTINATION share/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
   enable_testing()
+  add_executable(test_yuyi_controller_path_utils
+    test/test_path_utils.cpp
+  )
+  target_compile_features(test_yuyi_controller_path_utils PUBLIC cxx_std_17)
+  target_include_directories(test_yuyi_controller_path_utils PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  )
+  add_test(NAME test_yuyi_controller_path_utils COMMAND test_yuyi_controller_path_utils)
   add_test(
     NAME test_yuyi_controller_launch_path_file
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_launch_path_file.py

@@ -7,6 +7,21 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 
+def workspace_root_from_share(package_share: str) -> str:
+    return os.path.abspath(os.path.join(package_share, "..", "..", "..", ".."))
+
+
+def default_params_file(package_share: str) -> str:
+    return os.path.join(
+        workspace_root_from_share(package_share),
+        "src",
+        "LidarBridge",
+        "yuyi_controller",
+        "config",
+        "yuyi_controller_params.yaml",
+    )
+
+
 def build_node_parameters(params_file: str, path_file: str):
     parameters = [params_file]
     if path_file:
@@ -31,13 +46,12 @@ def _create_controller_node(context):
 
 def generate_launch_description():
     package_share = get_package_share_directory("yuyi_controller")
-    default_params = os.path.join(package_share, "config", "yuyi_controller_params.yaml")
 
     return LaunchDescription(
         [
             DeclareLaunchArgument(
                 "params_file",
-                default_value=default_params,
+                default_value=default_params_file(package_share),
                 description="Controller parameter yaml",
             ),
             DeclareLaunchArgument(

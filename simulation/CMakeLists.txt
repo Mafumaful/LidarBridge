@@ -10,6 +10,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/../cmake/ros2_compat.cmake)
 find_package(ament_cmake REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(tf2 REQUIRED)
@@ -49,5 +50,17 @@ install(
   DIRECTORY config launch maps paths
   DESTINATION share/${PROJECT_NAME}
 )
+
+if(BUILD_TESTING)
+  enable_testing()
+  add_test(
+    NAME test_simulation_launch_defaults
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_launch_defaults.py
+  )
+  add_test(
+    NAME test_simulation_path_generator_map_loading
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_path_generator_map_loading.py
+  )
+endif()
 
 ament_package()

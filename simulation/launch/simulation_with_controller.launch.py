@@ -16,6 +16,43 @@ def build_controller_launch_arguments(controller_params_file: str, path_file: st
     return launch_arguments
 
 
+def workspace_root_from_share(package_share: str) -> str:
+    return os.path.abspath(os.path.join(package_share, "..", "..", "..", ".."))
+
+
+def default_map_yaml_file(package_share: str) -> str:
+    return os.path.join(
+        workspace_root_from_share(package_share),
+        "src",
+        "LidarBridge",
+        "simulation",
+        "maps",
+        "simulation_map.yaml",
+    )
+
+
+def default_simulator_params_file(package_share: str) -> str:
+    return os.path.join(
+        workspace_root_from_share(package_share),
+        "src",
+        "LidarBridge",
+        "simulation",
+        "config",
+        "ackermann_simulator_params.yaml",
+    )
+
+
+def default_controller_params_file(package_share: str) -> str:
+    return os.path.join(
+        workspace_root_from_share(package_share),
+        "src",
+        "LidarBridge",
+        "yuyi_controller",
+        "config",
+        "yuyi_controller_params.yaml",
+    )
+
+
 def generate_launch_description():
     simulation_share = get_package_share_directory("simulation")
     controller_share = get_package_share_directory("yuyi_controller")
@@ -41,17 +78,11 @@ def generate_launch_description():
         "projectConfigs",
         "simulationConifg.rviz",
     )
-    default_map_yaml = os.path.join(simulation_share, "maps", "simulation_map.yaml")
-    default_controller_params = os.path.join(
-        controller_share,
-        "config",
-        "yuyi_controller_params.yaml",
-    )
-
     rviz_config = LaunchConfiguration("rviz_config")
     map_yaml_file = LaunchConfiguration("map_yaml_file")
     path_file = LaunchConfiguration("path_file")
     controller_params_file = LaunchConfiguration("controller_params_file")
+    simulator_params_file = LaunchConfiguration("simulator_params_file")
 
     return LaunchDescription(
         [
@@ -62,7 +93,7 @@ def generate_launch_description():
             ),
             DeclareLaunchArgument(
                 "map_yaml_file",
-                default_value=default_map_yaml,
+                default_value=default_map_yaml_file(simulation_share),
                 description="Nav2-compatible map yaml file to publish as /map",
             ),
             DeclareLaunchArgument(
@@ -71,8 +102,13 @@ def generate_launch_description():
                 description="Optional generated path yaml or csv file for the controller",
             ),
             DeclareLaunchArgument(
+                "simulator_params_file",
+                default_value=default_simulator_params_file(simulation_share),
+                description="Ackermann simulator parameter yaml",
+            ),
+            DeclareLaunchArgument(
                 "controller_params_file",
-                default_value=default_controller_params,
+                default_value=default_controller_params_file(controller_share),
                 description="Controller parameter yaml",
             ),
             IncludeLaunchDescription(
@@ -80,6 +116,7 @@ def generate_launch_description():
                 launch_arguments={
                     "rviz_config": rviz_config,
                     "map_yaml_file": map_yaml_file,
+                    "simulator_params_file": simulator_params_file,
                 }.items(),
             ),
             OpaqueFunction(

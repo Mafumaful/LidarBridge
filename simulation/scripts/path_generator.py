@@ -18,6 +18,15 @@ from PIL import Image
 import yaml
 
 
+ANSI_RESET = "\033[0m"
+ANSI_CYAN = "\033[1;36m"
+ANSI_GREEN = "\033[1;32m"
+
+
+def color_text(text: str, color_code: str) -> str:
+    return f"{color_code}{text}{ANSI_RESET}"
+
+
 def resolve_path(path_str: str, base_dir: Path) -> Path:
     path = Path(path_str)
     if path.is_absolute():
@@ -519,16 +528,24 @@ class PathGeneratorApp:
                     f"{point['y_m']:.6f},{point['yaw_rad']:.6f},{point['curvature']:.6f}\n"
                 )
 
-        print(f"[path_generator] saved yaml: {self.config.output_yaml_file}")
-        print(f"[path_generator] saved csv:  {self.config.output_csv_file}")
+        print(color_text(f"[path_generator] saved yaml: {self.config.output_yaml_file}", ANSI_GREEN))
+        print(color_text(f"[path_generator] saved csv:  {self.config.output_csv_file}", ANSI_CYAN))
 
     def run(self) -> None:
         plt.show()
 
 
+def workspace_root_from_share(package_share: Path) -> Path:
+    return package_share.parents[3]
+
+
+def default_config_file(package_share: Path) -> Path:
+    return workspace_root_from_share(package_share) / "src" / "LidarBridge" / "simulation" / "config" / "path_generator_params.yaml"
+
+
 def parse_args() -> argparse.Namespace:
     package_share = Path(get_package_share_directory("simulation"))
-    default_config = package_share / "config" / "path_generator_params.yaml"
+    default_config = default_config_file(package_share)
 
     parser = argparse.ArgumentParser(description="Interactive path generator for Nav2 maps")
     parser.add_argument(

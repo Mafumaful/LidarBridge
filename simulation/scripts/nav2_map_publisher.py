@@ -12,6 +12,14 @@ from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 import yaml
 
 
+ANSI_RESET = "\033[0m"
+ANSI_CYAN = "\033[1;36m"
+
+
+def color_text(text: str, color_code: str) -> str:
+    return f"{color_code}{text}{ANSI_RESET}"
+
+
 def occupancy_from_pixel(
     pixel_value: int,
     negate: bool,
@@ -78,7 +86,10 @@ class Nav2MapPublisherNode(Node):
             self.timer = None
 
         self.get_logger().info(
-            f"Loaded Nav2 map '{map_yaml_file}' and publishing on '{self.map_topic}'"
+            color_text(
+                f"Loaded Nav2 map '{map_yaml_file}' and publishing on '{self.map_topic}'",
+                ANSI_CYAN,
+            )
         )
 
     def load_map(self, map_yaml_file: str) -> OccupancyGrid:

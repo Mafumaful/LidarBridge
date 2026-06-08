@@ -19,6 +19,8 @@
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "visualization_msgs/msg/marker.hpp"
+#include "yuyi_controller/path_types.hpp"
+#include "yuyi_controller/path_utils.hpp"
 #include "yaml-cpp/yaml.h"
 
 namespace yuyi_controller
@@ -28,16 +30,11 @@ namespace
 {
 
 constexpr double kPi = 3.14159265358979323846;
-
-struct PathPoint
-{
-  std::size_t index{0U};
-  double s_m{0.0};
-  double x_m{0.0};
-  double y_m{0.0};
-  double yaw_rad{0.0};
-  double curvature{0.0};
-};
+constexpr const char * kAnsiReset = "\033[0m";
+constexpr const char * kAnsiCyan = "\033[1;36m";
+constexpr const char * kAnsiGreen = "\033[1;32m";
+constexpr const char * kAnsiYellow = "\033[1;33m";
+constexpr const char * kAnsiRed = "\033[1;31m";
 
 struct Pose2D
 {
@@ -212,6 +209,7 @@ public:
     max_acceleration_mps2_ = declare_parameter<double>("max_acceleration_mps2", 0.5);
     max_deceleration_mps2_ = declare_parameter<double>("max_deceleration_mps2", 0.8);
     max_angular_speed_radps_ = declare_parameter<double>("max_angular_speed_radps", 1.5);
+    loop_path_ = declare_parameter<bool>("loop_path", false);
     stop_at_goal_ = declare_parameter<bool>("stop_at_goal", true);
 
     const auto package_share_dir = std::filesystem::path(
@@ -257,11 +255,14 @@ public:
 
     RCLCPP_INFO(
       get_logger(),
-      "Loaded %zu path points from %s; odom='%s', cmd_vel='%s'",
+      "%sLoaded %zu path points from %s; odom='%s', cmd_vel='%s', loop_path=%s%s",
+      kAnsiCyan,
       path_points_.size(),
       path_file_.string().c_str(),
       odom_topic_.c_str(),
-      cmd_vel_topic_.c_str());
+      cmd_vel_topic_.c_str(),
+      loop_path_ ? "true" : "false",
+      kAnsiReset);
   }
 
 private:
@@ -286,19 +287,24 @@ private:
     last_control_time_ = now;
 
     if (!has_odom_) {
-      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000, "waiting for odom");
+      RCLCPP_WARN_THROTTLE(
+        get_logger(), *get_clock(), 2000, "%swaiting for odom%s", kAnsiYellow, kAnsiReset);
       publish_stop();
       return;
     }
 
     nearest_index_ = find_nearest_index(current_pose_, nearest_index_);
-    const auto remaining_distance_m = path_points_.back().s_m - path_points_[nearest_index_].s_m;
+    const auto remaining_distance_m = path_utils::remaining_distance_m(
+      path_points_, nearest_index_, loop_path_);
 
-    if (stop_at_goal_ && remaining_distance_m <= goal_tolerance_m_) {
+    if (path_utils::should_stop_at_goal(
+        remaining_distance_m, goal_tolerance_m_, stop_at_goal_, loop_path_))
+    {
       commanded_speed_mps_ = move_towards(commanded_speed_mps_, 0.0, max_deceleration_mps2_ * dt);
       publish_cmd(commanded_speed_mps_, 0.0);
       publish_target_marker(path_points_.back(), true);
-      RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 2000, "goal reached");
+      RCLCPP_INFO_THROTTLE(
+        get_logger(), *get_clock(), 2000, "%sgoal reached%s", kAnsiGreen, kAnsiReset);
       return;
     }
 
@@ -332,13 +338,16 @@ private:
       get_logger(),
       *get_clock(),
       500,
-      "nearest=%zu target=%zu rem=%.2f lookahead=%.2f cmd_v=%.2f cmd_w=%.2f",
+      "%snearest=%zu target=%zu rem=%.2f lookahead=%.2f cmd_v=%.2f cmd_w=%.2f loop=%s%s",
+      kAnsiCyan,
       nearest_index_,
       target_index,
       remaining_distance_m,
       effective_lookahead_m,
       commanded_speed_mps_,
-      angular_z);
+      angular_z,
+      loop_path_ ? "true" : "false",
+      kAnsiReset);
   }
 
   std::size_t find_nearest_index(const Pose2D & pose, std::size_t hint_index) const
@@ -360,13 +369,8 @@ private:
 
   std::size_t find_lookahead_index(std::size_t nearest_index, double lookahead_distance_m) const
   {
-    const auto target_s = path_points_[nearest_index].s_m + lookahead_distance_m;
-    for (std::size_t i = nearest_index; i < path_points_.size(); ++i) {
-      if (path_points_[i].s_m >= target_s) {
-        return i;
-      }
-    }
-    return path_points_.size() - 1U;
+    return path_utils::find_lookahead_index(
+      path_points_, nearest_index, lookahead_distance_m, loop_path_);
   }
 
   double compute_lookahead_distance() const
@@ -377,8 +381,8 @@ private:
 
   double compute_target_speed(double remaining_distance_m) const
   {
-    const auto braking_speed = std::sqrt(std::max(0.0, 2.0 * max_deceleration_mps2_ * remaining_distance_m));
-    return std::min(max_speed_mps_, braking_speed);
+    return path_utils::target_speed_mps(
+      remaining_distance_m, max_speed_mps_, max_deceleration_mps2_, loop_path_);
   }
 
   double move_towards(double current, double target, double max_delta) const
@@ -470,6 +474,7 @@ private:
   double max_acceleration_mps2_{0.5};
   double max_deceleration_mps2_{0.8};
   double max_angular_speed_radps_{1.5};
+  bool loop_path_{false};
   bool stop_at_goal_{true};
 
   std::vector<PathPoint> path_points_;
@@ -494,7 +499,12 @@ int main(int argc, char ** argv)
   try {
     rclcpp::spin(std::make_shared<yuyi_controller::YuyiControllerNode>());
   } catch (const std::exception & ex) {
-    RCLCPP_FATAL(rclcpp::get_logger("yuyi_controller_node"), "fatal error: %s", ex.what());
+    RCLCPP_FATAL(
+      rclcpp::get_logger("yuyi_controller_node"),
+      "%sfatal error: %s%s",
+      "\033[1;31m",
+      ex.what(),
+      "\033[0m");
   }
   rclcpp::shutdown();
   return 0;

@@ -26,6 +26,9 @@ namespace
 {
 
 constexpr double kPi = 3.14159265358979323846;
+constexpr const char * kAnsiReset = "\033[0m";
+constexpr const char * kAnsiCyan = "\033[1;36m";
+constexpr const char * kAnsiRed = "\033[1;31m";
 
 double normalize_angle(double angle_rad)
 {
@@ -219,11 +222,13 @@ public:
 
     RCLCPP_INFO(
       get_logger(),
-      "Ackermann simulator ready: cmd_vel='%s', odom='%s', tf=%s->%s",
+      "%sAckermann simulator ready: cmd_vel='%s', odom='%s', tf=%s->%s%s",
+      kAnsiCyan,
       cmd_vel_topic_.c_str(),
       odom_topic_.c_str(),
       map_frame_id_.c_str(),
-      base_frame_id_.c_str());
+      base_frame_id_.c_str(),
+      kAnsiReset);
   }
 
 private:
@@ -479,7 +484,16 @@ private:
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<AckermannSimulatorNode>());
+  try {
+    rclcpp::spin(std::make_shared<AckermannSimulatorNode>());
+  } catch (const std::exception & ex) {
+    RCLCPP_FATAL(
+      rclcpp::get_logger("ackermann_simulator_node"),
+      "%sfatal error: %s%s",
+      kAnsiRed,
+      ex.what(),
+      kAnsiReset);
+  }
   rclcpp::shutdown();
   return 0;
 }

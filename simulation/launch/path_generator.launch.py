@@ -7,9 +7,23 @@ from ament_index_python.packages import get_package_share_directory
 import os
 
 
+def workspace_root_from_share(package_share: str) -> str:
+    return os.path.abspath(os.path.join(package_share, "..", "..", "..", ".."))
+
+
+def default_config_file(package_share: str) -> str:
+    return os.path.join(
+        workspace_root_from_share(package_share),
+        "src",
+        "LidarBridge",
+        "simulation",
+        "config",
+        "path_generator_params.yaml",
+    )
+
+
 def generate_launch_description():
     package_share = get_package_share_directory("simulation")
-    default_config = os.path.join(package_share, "config", "path_generator_params.yaml")
 
     config_file = LaunchConfiguration("config_file")
 
@@ -17,7 +31,7 @@ def generate_launch_description():
         [
             DeclareLaunchArgument(
                 "config_file",
-                default_value=default_config,
+                default_value=default_config_file(package_share),
                 description="Path generator config yaml",
             ),
             Node(

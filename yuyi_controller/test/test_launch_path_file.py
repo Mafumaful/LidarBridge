@@ -21,6 +21,19 @@ def load_module(module_name: str, relative_path: str):
 
 
 class LaunchPathFileBehaviorTest(unittest.TestCase):
+    def test_controller_launch_defaults_to_workspace_params_file(self):
+        launch_module = load_module(
+            "yuyi_controller_launch",
+            "yuyi_controller/launch/yuyi_controller.launch.py",
+        )
+
+        self.assertEqual(
+            launch_module.default_params_file(
+                "/tmp/fake_ws/install/yuyi_controller/share/yuyi_controller"
+            ),
+            "/tmp/fake_ws/src/LidarBridge/yuyi_controller/config/yuyi_controller_params.yaml",
+        )
+
     def test_controller_launch_uses_config_path_when_no_override_is_given(self):
         launch_module = load_module(
             "yuyi_controller_launch",
@@ -71,10 +84,12 @@ class LaunchPathFileBehaviorTest(unittest.TestCase):
         with config_path.open("r", encoding="utf-8") as stream:
             params = yaml.safe_load(stream)
 
+        ros_params = params["yuyi_controller_node"]["ros__parameters"]
         self.assertEqual(
-            params["yuyi_controller_node"]["ros__parameters"]["path_file"],
+            ros_params["path_file"],
             "src/LidarBridge/simulation/paths/generated_path.yaml",
         )
+        self.assertFalse(ros_params["loop_path"])
 
 
 if __name__ == "__main__":

@@ -18,4 +18,5 @@ yuyi_controller_node:
     max_deceleration_mps2: 0.8
     max_angular_speed_radps: 1.5
 
+    loop_path: false
     stop_at_goal: true
