@@ -13,6 +13,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(visualization_msgs REQUIRED)
@@ -36,6 +37,7 @@ target_link_libraries(yuyi_controller_node
 )
 target_link_ros2_package_compat(yuyi_controller_node geometry_msgs)
 target_link_ros2_package_compat(yuyi_controller_node nav_msgs)
+target_link_ros2_package_compat(yuyi_controller_node sensor_msgs)
 target_link_ros2_package_compat(yuyi_controller_node visualization_msgs)
 
 install(

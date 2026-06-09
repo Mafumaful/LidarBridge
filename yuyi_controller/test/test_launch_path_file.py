@@ -90,6 +90,13 @@ class LaunchPathFileBehaviorTest(unittest.TestCase):
         self.assertEqual(ros_params["cmd_vel_marker_topic"], "/yuyi_controller/cmd_vel_marker")
         self.assertTrue(ros_params["show_cmd_vel_marker"])
         self.assertEqual(ros_params["cmd_vel_marker_scale"], 1.0)
+        self.assertFalse(ros_params["use_scan_brake"])
+        self.assertEqual(ros_params["scan_topic"], "/scan")
+        self.assertEqual(ros_params["scan_max_age_sec"], 0.5)
+        self.assertFalse(ros_params["scan_brake.front.enabled"])
+        self.assertEqual(ros_params["scan_brake.front.brake_distance_m"], 0.5)
+        self.assertFalse(ros_params["scan_brake.rear.enabled"])
+        self.assertEqual(ros_params["scan_brake.rear.brake_distance_m"], 0.5)
         self.assertEqual(ros_params["lookahead_time_sec"], 0.6)
         self.assertEqual(ros_params["min_lookahead_distance_m"], 0.2)
         self.assertEqual(ros_params["max_lookahead_distance_m"], 0.8)
@@ -104,6 +111,7 @@ class LaunchPathFileBehaviorTest(unittest.TestCase):
         package_xml_path = REPO_ROOT / "yuyi_controller/package.xml"
         package_xml = package_xml_path.read_text(encoding="utf-8")
 
+        self.assertIn("<depend>sensor_msgs</depend>", package_xml)
         self.assertIn("<depend>tf2</depend>", package_xml)
         self.assertIn("<depend>tf2_ros</depend>", package_xml)
 

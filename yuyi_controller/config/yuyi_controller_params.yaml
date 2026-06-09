@@ -11,6 +11,27 @@ yuyi_controller_node:
 
     path_file: src/LidarBridge/simulation/paths/generated_path.yaml
 
+    use_scan_brake: false
+    scan_topic: /scan
+    scan_max_age_sec: 0.5
+
+    "scan_brake.front.enabled": false
+    "scan_brake.front.brake_distance_m": 0.5
+    "scan_brake.left_front.enabled": false
+    "scan_brake.left_front.brake_distance_m": 0.5
+    "scan_brake.left.enabled": false
+    "scan_brake.left.brake_distance_m": 0.5
+    "scan_brake.left_rear.enabled": false
+    "scan_brake.left_rear.brake_distance_m": 0.5
+    "scan_brake.rear.enabled": false
+    "scan_brake.rear.brake_distance_m": 0.5
+    "scan_brake.right_rear.enabled": false
+    "scan_brake.right_rear.brake_distance_m": 0.5
+    "scan_brake.right.enabled": false
+    "scan_brake.right.brake_distance_m": 0.5
+    "scan_brake.right_front.enabled": false
+    "scan_brake.right_front.brake_distance_m": 0.5
+
     controller_rate_hz: 20.0
     lookahead_time_sec: 0.6
     min_lookahead_distance_m: 0.2
