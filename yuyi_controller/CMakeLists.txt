@@ -19,6 +19,20 @@ find_package(tf2_ros REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
 
+add_library(yuyi_controller_scan_brake
+  src/scan_brake.cpp
+)
+target_compile_features(yuyi_controller_scan_brake PUBLIC cxx_std_17)
+target_include_directories(yuyi_controller_scan_brake PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(yuyi_controller_scan_brake
+  PUBLIC
+    rclcpp::rclcpp
+)
+target_link_ros2_package_compat(yuyi_controller_scan_brake sensor_msgs)
+
 add_executable(yuyi_controller_node
   src/yuyi_controller_node.cpp
 )
@@ -33,6 +47,7 @@ target_link_libraries(yuyi_controller_node
     rclcpp::rclcpp
     tf2::tf2
     tf2_ros::tf2_ros
+    yuyi_controller_scan_brake
     yaml-cpp
 )
 target_link_ros2_package_compat(yuyi_controller_node geometry_msgs)
@@ -90,6 +105,23 @@ if(BUILD_TESTING)
   add_test(
     NAME test_yuyi_controller_launch_path_file
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/test_launch_path_file.py
+  )
+  add_executable(test_yuyi_controller_scan_brake
+    test/test_scan_brake.cpp
+  )
+  target_compile_features(test_yuyi_controller_scan_brake PUBLIC cxx_std_17)
+  target_include_directories(test_yuyi_controller_scan_brake PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  )
+  target_link_libraries(test_yuyi_controller_scan_brake
+    PRIVATE
+      rclcpp::rclcpp
+      yuyi_controller_scan_brake
+  )
+  target_link_ros2_package_compat(test_yuyi_controller_scan_brake sensor_msgs)
+  add_test(
+    NAME test_yuyi_controller_scan_brake
+    COMMAND test_yuyi_controller_scan_brake
   )
 endif()
 
