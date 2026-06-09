@@ -50,6 +50,35 @@ src/LidarBridge/simulation/paths/generated_path.yaml
 - `show_cmd_vel_marker`：是否发布命令速度矢量 marker
 - `cmd_vel_marker_scale`：命令速度矢量长度缩放系数
 
+## Scan Brake
+
+- `use_scan_brake`：是否启用 `/scan` 制动
+- `scan_topic`：激光雷达话题，默认 `/scan`
+- `scan_max_age_sec`：扫描超时时间，超过该时间没有新扫描就停车
+- `scan_brake.front.enabled`：前方扇区是否参与制动
+- `scan_brake.front.brake_distance_m`：前方扇区制动距离
+
+其余 7 个方向参数名称分别为：
+
+- `scan_brake.left_front.*`
+- `scan_brake.left.*`
+- `scan_brake.left_rear.*`
+- `scan_brake.rear.*`
+- `scan_brake.right_rear.*`
+- `scan_brake.right.*`
+- `scan_brake.right_front.*`
+
+当 `use_scan_brake=true` 时，控制器会把 `/scan` 按车体坐标切成 8 个固定方向扇区。只要任一已启用方向的最近有效距离小于该方向的 `brake_distance_m`，控制器就会按 `max_deceleration_mps2` 逐步刹停；当所有已启用方向恢复安全后，再按 `max_acceleration_mps2` 恢复行走。
+
+运行时调参示例：
+
+```bash
+ros2 param set /yuyi_controller_node use_scan_brake true
+ros2 param set /yuyi_controller_node scan_brake.front.enabled true
+ros2 param set /yuyi_controller_node scan_brake.front.brake_distance_m 0.8
+ros2 param set /yuyi_controller_node scan_max_age_sec 0.3
+```
+
 ## 编译
 
 ```bash

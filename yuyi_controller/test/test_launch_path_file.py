@@ -115,6 +115,17 @@ class LaunchPathFileBehaviorTest(unittest.TestCase):
         self.assertIn("<depend>tf2</depend>", package_xml)
         self.assertIn("<depend>tf2_ros</depend>", package_xml)
 
+    def test_readme_mentions_scan_brake_runtime_tuning(self):
+        readme_path = REPO_ROOT / "yuyi_controller/README.md"
+        readme = readme_path.read_text(encoding="utf-8")
+
+        self.assertIn("use_scan_brake", readme)
+        self.assertIn("scan_brake.front.brake_distance_m", readme)
+        self.assertIn(
+            "ros2 param set /yuyi_controller_node scan_brake.front.enabled true",
+            readme,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
