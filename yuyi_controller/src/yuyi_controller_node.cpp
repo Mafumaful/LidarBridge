@@ -18,12 +18,14 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/laser_scan.hpp"
 #include "tf2/exceptions.hpp"
 #include "tf2_ros/buffer.hpp"
 #include "tf2_ros/transform_listener.hpp"
 #include "visualization_msgs/msg/marker.hpp"
 #include "yuyi_controller/path_types.hpp"
 #include "yuyi_controller/path_utils.hpp"
+#include "yuyi_controller/scan_brake.hpp"
 #include "yaml-cpp/yaml.h"
 
 namespace yuyi_controller
@@ -230,6 +232,42 @@ public:
     max_angular_speed_radps_ = declare_parameter<double>("max_angular_speed_radps", 1.5);
     loop_path_ = declare_parameter<bool>("loop_path", false);
     stop_at_goal_ = declare_parameter<bool>("stop_at_goal", true);
+    use_scan_brake_ = declare_parameter<bool>("use_scan_brake", false);
+    scan_topic_ = declare_parameter<std::string>("scan_topic", "/scan");
+    scan_max_age_sec_ = declare_parameter<double>("scan_max_age_sec", 0.5);
+    front_sector_config_ = {
+      declare_parameter<bool>("scan_brake.front.enabled", false),
+      declare_parameter<double>("scan_brake.front.brake_distance_m", 0.5),
+    };
+    left_front_sector_config_ = {
+      declare_parameter<bool>("scan_brake.left_front.enabled", false),
+      declare_parameter<double>("scan_brake.left_front.brake_distance_m", 0.5),
+    };
+    left_sector_config_ = {
+      declare_parameter<bool>("scan_brake.left.enabled", false),
+      declare_parameter<double>("scan_brake.left.brake_distance_m", 0.5),
+    };
+    left_rear_sector_config_ = {
+      declare_parameter<bool>("scan_brake.left_rear.enabled", false),
+      declare_parameter<double>("scan_brake.left_rear.brake_distance_m", 0.5),
+    };
+    rear_sector_config_ = {
+      declare_parameter<bool>("scan_brake.rear.enabled", false),
+      declare_parameter<double>("scan_brake.rear.brake_distance_m", 0.5),
+    };
+    right_rear_sector_config_ = {
+      declare_parameter<bool>("scan_brake.right_rear.enabled", false),
+      declare_parameter<double>("scan_brake.right_rear.brake_distance_m", 0.5),
+    };
+    right_sector_config_ = {
+      declare_parameter<bool>("scan_brake.right.enabled", false),
+      declare_parameter<double>("scan_brake.right.brake_distance_m", 0.5),
+    };
+    right_front_sector_config_ = {
+      declare_parameter<bool>("scan_brake.right_front.enabled", false),
+      declare_parameter<double>("scan_brake.right_front.brake_distance_m", 0.5),
+    };
+    sync_scan_brake_config();
 
     const auto package_share_dir = std::filesystem::path(
       ament_index_cpp::get_package_share_directory("yuyi_controller"));
@@ -259,6 +297,10 @@ public:
     path_publisher_ = create_publisher<nav_msgs::msg::Path>(path_topic_, rclcpp::QoS(1).transient_local());
     target_marker_publisher_ = create_publisher<visualization_msgs::msg::Marker>(
       target_marker_topic_, 10);
+    scan_subscription_ = create_subscription<sensor_msgs::msg::LaserScan>(
+      scan_topic_,
+      10,
+      std::bind(&YuyiControllerNode::handle_scan, this, std::placeholders::_1));
     if (show_cmd_vel_marker_) {
       cmd_vel_marker_publisher_ = create_publisher<visualization_msgs::msg::Marker>(
         cmd_vel_marker_topic_, 10);
@@ -301,6 +343,29 @@ public:
   }
 
 private:
+  void handle_scan(const sensor_msgs::msg::LaserScan::SharedPtr msg)
+  {
+    latest_scan_.scan = *msg;
+    latest_scan_.received_at = now();
+    latest_scan_.has_scan = true;
+  }
+
+  void sync_scan_brake_config()
+  {
+    scan_brake_config_.use_scan_brake = use_scan_brake_;
+    scan_brake_config_.max_age_sec = scan_max_age_sec_;
+    scan_brake_config_.sectors = {
+      front_sector_config_,
+      left_front_sector_config_,
+      left_sector_config_,
+      left_rear_sector_config_,
+      rear_sector_config_,
+      right_rear_sector_config_,
+      right_sector_config_,
+      right_front_sector_config_,
+    };
+  }
+
   bool update_current_pose_from_tf()
   {
     try {
@@ -347,6 +412,21 @@ private:
     nearest_index_ = find_nearest_index(current_pose_, nearest_index_);
     const auto remaining_distance_m = path_utils::remaining_distance_m(
       path_points_, nearest_index_, loop_path_);
+    const auto scan_evaluation = scan_brake::evaluate(scan_brake_config_, latest_scan_, now);
+
+    if (scan_evaluation.should_brake) {
+      commanded_speed_mps_ = move_towards(commanded_speed_mps_, 0.0, max_deceleration_mps2_ * dt);
+      publish_cmd(commanded_speed_mps_, 0.0);
+      RCLCPP_INFO_THROTTLE(
+        get_logger(),
+        *get_clock(),
+        2000,
+        "%sscan brake active: %s%s",
+        kAnsiYellow,
+        scan_evaluation.reason.c_str(),
+        kAnsiReset);
+      return;
+    }
 
     if (path_utils::should_stop_at_goal(
         remaining_distance_m, goal_tolerance_m_, stop_at_goal_, loop_path_))
@@ -573,20 +653,34 @@ private:
   double max_lateral_acceleration_mps2_{0.25};
   double max_angular_speed_radps_{1.5};
   double cmd_vel_marker_scale_{1.0};
+  double scan_max_age_sec_{0.5};
   bool loop_path_{false};
   bool stop_at_goal_{true};
   bool show_cmd_vel_marker_{true};
+  bool use_scan_brake_{false};
 
   std::vector<PathPoint> path_points_;
   Pose2D current_pose_;
   std::size_t nearest_index_{0U};
   double commanded_speed_mps_{0.0};
   rclcpp::Time last_control_time_{0, 0, RCL_ROS_TIME};
+  std::string scan_topic_;
+  scan_brake::SectorConfig front_sector_config_{};
+  scan_brake::SectorConfig left_front_sector_config_{};
+  scan_brake::SectorConfig left_sector_config_{};
+  scan_brake::SectorConfig left_rear_sector_config_{};
+  scan_brake::SectorConfig rear_sector_config_{};
+  scan_brake::SectorConfig right_rear_sector_config_{};
+  scan_brake::SectorConfig right_sector_config_{};
+  scan_brake::SectorConfig right_front_sector_config_{};
+  scan_brake::Config scan_brake_config_{};
+  scan_brake::CachedScan latest_scan_{};
 
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_publisher_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_publisher_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr target_marker_publisher_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr cmd_vel_marker_publisher_;
+  rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_subscription_;
   CmdPublishObserver cmd_publish_observer_;
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;

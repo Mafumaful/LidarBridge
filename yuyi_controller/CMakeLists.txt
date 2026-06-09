@@ -91,12 +91,14 @@ if(BUILD_TESTING)
     PRIVATE
       ament_index_cpp::ament_index_cpp
       rclcpp::rclcpp
+      yuyi_controller_scan_brake
       tf2::tf2
       tf2_ros::tf2_ros
       yaml-cpp
   )
   target_link_ros2_package_compat(test_yuyi_controller_shutdown_stop geometry_msgs)
   target_link_ros2_package_compat(test_yuyi_controller_shutdown_stop nav_msgs)
+  target_link_ros2_package_compat(test_yuyi_controller_shutdown_stop sensor_msgs)
   target_link_ros2_package_compat(test_yuyi_controller_shutdown_stop visualization_msgs)
   add_test(
     NAME test_yuyi_controller_shutdown_stop
@@ -122,6 +124,30 @@ if(BUILD_TESTING)
   add_test(
     NAME test_yuyi_controller_scan_brake
     COMMAND test_yuyi_controller_scan_brake
+  )
+  add_executable(test_yuyi_controller_scan_brake_node
+    test/test_scan_brake_node.cpp
+  )
+  target_compile_features(test_yuyi_controller_scan_brake_node PUBLIC cxx_std_17)
+  target_include_directories(test_yuyi_controller_scan_brake_node PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  )
+  target_link_libraries(test_yuyi_controller_scan_brake_node
+    PRIVATE
+      ament_index_cpp::ament_index_cpp
+      rclcpp::rclcpp
+      tf2::tf2
+      tf2_ros::tf2_ros
+      yuyi_controller_scan_brake
+      yaml-cpp
+  )
+  target_link_ros2_package_compat(test_yuyi_controller_scan_brake_node geometry_msgs)
+  target_link_ros2_package_compat(test_yuyi_controller_scan_brake_node nav_msgs)
+  target_link_ros2_package_compat(test_yuyi_controller_scan_brake_node sensor_msgs)
+  target_link_ros2_package_compat(test_yuyi_controller_scan_brake_node visualization_msgs)
+  add_test(
+    NAME test_yuyi_controller_scan_brake_node
+    COMMAND test_yuyi_controller_scan_brake_node
   )
 endif()
 
