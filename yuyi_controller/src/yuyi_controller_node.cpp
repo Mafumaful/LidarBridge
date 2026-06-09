@@ -18,6 +18,7 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "rcl_interfaces/msg/set_parameters_result.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
 #include "tf2/exceptions.hpp"
 #include "tf2_ros/buffer.hpp"
@@ -305,6 +306,8 @@ public:
       cmd_vel_marker_publisher_ = create_publisher<visualization_msgs::msg::Marker>(
         cmd_vel_marker_topic_, 10);
     }
+    parameter_callback_handle_ = add_on_set_parameters_callback(
+      std::bind(&YuyiControllerNode::handle_parameter_updates, this, std::placeholders::_1));
 
     tf_buffer_ = std::make_unique<tf2_ros::Buffer>(get_clock());
     tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
@@ -343,6 +346,126 @@ public:
   }
 
 private:
+  rcl_interfaces::msg::SetParametersResult handle_parameter_updates(
+    const std::vector<rclcpp::Parameter> & parameters)
+  {
+    auto result = rcl_interfaces::msg::SetParametersResult();
+    result.successful = true;
+
+    for (const auto & parameter : parameters) {
+      if (parameter.get_name() == "use_scan_brake") {
+        use_scan_brake_ = parameter.as_bool();
+      } else if (parameter.get_name() == "scan_max_age_sec") {
+        const auto value = parameter.as_double();
+        if (value <= 0.0) {
+          result.successful = false;
+          result.reason = "scan_max_age_sec must be greater than 0";
+          return result;
+        }
+        scan_max_age_sec_ = value;
+      } else if (parameter.get_name() == "max_acceleration_mps2") {
+        const auto value = parameter.as_double();
+        if (value <= 0.0) {
+          result.successful = false;
+          result.reason = "max_acceleration_mps2 must be greater than 0";
+          return result;
+        }
+        max_acceleration_mps2_ = value;
+      } else if (parameter.get_name() == "max_deceleration_mps2") {
+        const auto value = parameter.as_double();
+        if (value <= 0.0) {
+          result.successful = false;
+          result.reason = "max_deceleration_mps2 must be greater than 0";
+          return result;
+        }
+        max_deceleration_mps2_ = value;
+      } else if (parameter.get_name() == "scan_brake.front.enabled") {
+        front_sector_config_.enabled = parameter.as_bool();
+      } else if (parameter.get_name() == "scan_brake.front.brake_distance_m") {
+        const auto value = parameter.as_double();
+        if (value < 0.0) {
+          result.successful = false;
+          result.reason = "scan brake distance must be non-negative";
+          return result;
+        }
+        front_sector_config_.brake_distance_m = value;
+      } else if (parameter.get_name() == "scan_brake.left_front.enabled") {
+        left_front_sector_config_.enabled = parameter.as_bool();
+      } else if (parameter.get_name() == "scan_brake.left_front.brake_distance_m") {
+        const auto value = parameter.as_double();
+        if (value < 0.0) {
+          result.successful = false;
+          result.reason = "scan brake distance must be non-negative";
+          return result;
+        }
+        left_front_sector_config_.brake_distance_m = value;
+      } else if (parameter.get_name() == "scan_brake.left.enabled") {
+        left_sector_config_.enabled = parameter.as_bool();
+      } else if (parameter.get_name() == "scan_brake.left.brake_distance_m") {
+        const auto value = parameter.as_double();
+        if (value < 0.0) {
+          result.successful = false;
+          result.reason = "scan brake distance must be non-negative";
+          return result;
+        }
+        left_sector_config_.brake_distance_m = value;
+      } else if (parameter.get_name() == "scan_brake.left_rear.enabled") {
+        left_rear_sector_config_.enabled = parameter.as_bool();
+      } else if (parameter.get_name() == "scan_brake.left_rear.brake_distance_m") {
+        const auto value = parameter.as_double();
+        if (value < 0.0) {
+          result.successful = false;
+          result.reason = "scan brake distance must be non-negative";
+          return result;
+        }
+        left_rear_sector_config_.brake_distance_m = value;
+      } else if (parameter.get_name() == "scan_brake.rear.enabled") {
+        rear_sector_config_.enabled = parameter.as_bool();
+      } else if (parameter.get_name() == "scan_brake.rear.brake_distance_m") {
+        const auto value = parameter.as_double();
+        if (value < 0.0) {
+          result.successful = false;
+          result.reason = "scan brake distance must be non-negative";
+          return result;
+        }
+        rear_sector_config_.brake_distance_m = value;
+      } else if (parameter.get_name() == "scan_brake.right_rear.enabled") {
+        right_rear_sector_config_.enabled = parameter.as_bool();
+      } else if (parameter.get_name() == "scan_brake.right_rear.brake_distance_m") {
+        const auto value = parameter.as_double();
+        if (value < 0.0) {
+          result.successful = false;
+          result.reason = "scan brake distance must be non-negative";
+          return result;
+        }
+        right_rear_sector_config_.brake_distance_m = value;
+      } else if (parameter.get_name() == "scan_brake.right.enabled") {
+        right_sector_config_.enabled = parameter.as_bool();
+      } else if (parameter.get_name() == "scan_brake.right.brake_distance_m") {
+        const auto value = parameter.as_double();
+        if (value < 0.0) {
+          result.successful = false;
+          result.reason = "scan brake distance must be non-negative";
+          return result;
+        }
+        right_sector_config_.brake_distance_m = value;
+      } else if (parameter.get_name() == "scan_brake.right_front.enabled") {
+        right_front_sector_config_.enabled = parameter.as_bool();
+      } else if (parameter.get_name() == "scan_brake.right_front.brake_distance_m") {
+        const auto value = parameter.as_double();
+        if (value < 0.0) {
+          result.successful = false;
+          result.reason = "scan brake distance must be non-negative";
+          return result;
+        }
+        right_front_sector_config_.brake_distance_m = value;
+      }
+    }
+
+    sync_scan_brake_config();
+    return result;
+  }
+
   void handle_scan(const sensor_msgs::msg::LaserScan::SharedPtr msg)
   {
     latest_scan_.scan = *msg;
@@ -681,6 +804,7 @@ private:
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr target_marker_publisher_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr cmd_vel_marker_publisher_;
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr scan_subscription_;
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr parameter_callback_handle_;
   CmdPublishObserver cmd_publish_observer_;
   std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;

@@ -73,7 +73,8 @@ void spin_executor(
   }
 }
 
-std::shared_ptr<yuyi_controller::YuyiControllerNode> make_controller_with_scan_brake()
+std::shared_ptr<yuyi_controller::YuyiControllerNode> make_controller_with_scan_brake(
+  const std::vector<std::string> & extra_arguments = {})
 {
   std::vector<std::string> arguments = {
     "--ros-args",
@@ -84,6 +85,7 @@ std::shared_ptr<yuyi_controller::YuyiControllerNode> make_controller_with_scan_b
     "-p", "scan_brake.front.enabled:=true",
     "-p", "scan_brake.front.brake_distance_m:=0.5",
   };
+  arguments.insert(arguments.end(), extra_arguments.begin(), extra_arguments.end());
   return std::make_shared<yuyi_controller::YuyiControllerNode>(
     rclcpp::NodeOptions().arguments(arguments));
 }
@@ -130,6 +132,96 @@ void safe_scan_allows_motion()
   assert(linear_x > 0.0);
 }
 
+void unsafe_scan_decelerates_to_stop()
+{
+  auto controller = make_controller_with_scan_brake();
+  auto helper_node = std::make_shared<rclcpp::Node>("scan_brake_test_helper_brake");
+  auto scan_publisher = helper_node->create_publisher<sensor_msgs::msg::LaserScan>("/scan", 10);
+  publish_static_tf(helper_node);
+
+  double latest_linear_x = 0.0;
+  controller->set_cmd_publish_observer(
+    [&](double observed_linear_x, double) {
+      latest_linear_x = observed_linear_x;
+    });
+
+  rclcpp::executors::SingleThreadedExecutor executor;
+  executor.add_node(controller);
+  executor.add_node(helper_node);
+
+  scan_publisher->publish(make_uniform_scan(5.0F));
+  spin_executor(executor, std::chrono::milliseconds(500));
+  assert(latest_linear_x > 0.0);
+
+  auto blocked_scan = make_uniform_scan(5.0F);
+  blocked_scan.ranges[180] = 0.2F;
+  scan_publisher->publish(blocked_scan);
+  spin_executor(executor, std::chrono::milliseconds(800));
+  assert(std::fabs(latest_linear_x) < 1e-3);
+}
+
+void stale_scan_reapplies_stop()
+{
+  auto controller = make_controller_with_scan_brake({
+    "-p", "scan_max_age_sec:=0.1",
+  });
+  auto helper_node = std::make_shared<rclcpp::Node>("scan_brake_test_helper_stale");
+  auto scan_publisher = helper_node->create_publisher<sensor_msgs::msg::LaserScan>("/scan", 10);
+  publish_static_tf(helper_node);
+
+  double latest_linear_x = 0.0;
+  controller->set_cmd_publish_observer(
+    [&](double observed_linear_x, double) {
+      latest_linear_x = observed_linear_x;
+    });
+
+  rclcpp::executors::SingleThreadedExecutor executor;
+  executor.add_node(controller);
+  executor.add_node(helper_node);
+
+  scan_publisher->publish(make_uniform_scan(5.0F));
+  spin_executor(executor, std::chrono::milliseconds(80));
+  assert(latest_linear_x > 0.0);
+
+  spin_executor(executor, std::chrono::milliseconds(300));
+  assert(std::fabs(latest_linear_x) < 1e-3);
+}
+
+void dynamic_sector_threshold_update_releases_brake()
+{
+  auto controller = make_controller_with_scan_brake();
+  auto helper_node = std::make_shared<rclcpp::Node>("scan_brake_test_helper_dynamic");
+  auto scan_publisher = helper_node->create_publisher<sensor_msgs::msg::LaserScan>("/scan", 10);
+  publish_static_tf(helper_node);
+
+  double latest_linear_x = 0.0;
+  controller->set_cmd_publish_observer(
+    [&](double observed_linear_x, double) {
+      latest_linear_x = observed_linear_x;
+    });
+
+  rclcpp::executors::SingleThreadedExecutor executor;
+  executor.add_node(controller);
+  executor.add_node(helper_node);
+
+  auto blocked_scan = make_uniform_scan(5.0F);
+  blocked_scan.ranges[180] = 0.2F;
+  scan_publisher->publish(blocked_scan);
+  spin_executor(executor, std::chrono::milliseconds(500));
+  assert(std::fabs(latest_linear_x) < 1e-3);
+
+  const auto results = controller->set_parameters({
+    rclcpp::Parameter("scan_brake.front.brake_distance_m", 0.1),
+    rclcpp::Parameter("scan_brake.front.enabled", true),
+  });
+  assert(results[0].successful);
+  assert(results[1].successful);
+
+  scan_publisher->publish(blocked_scan);
+  spin_executor(executor, std::chrono::milliseconds(500));
+  assert(latest_linear_x > 0.0);
+}
+
 }  // namespace
 
 int main(int argc, char ** argv)
@@ -142,6 +234,9 @@ int main(int argc, char ** argv)
   rclcpp::init(argc, argv);
   scan_brake_waits_for_first_scan();
   safe_scan_allows_motion();
+  unsafe_scan_decelerates_to_stop();
+  stale_scan_reapplies_stop();
+  dynamic_sector_threshold_update_releases_brake();
   rclcpp::shutdown();
   return 0;
 }

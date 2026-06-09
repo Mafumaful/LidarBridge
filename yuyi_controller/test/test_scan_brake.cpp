@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>
+#include <limits>
 
 namespace
 {
@@ -57,6 +58,31 @@ void evaluate_brakes_when_enabled_sector_is_close()
   assert(evaluation.should_brake);
 }
 
+void evaluate_brakes_when_enabled_sector_has_no_valid_sample()
+{
+  yuyi_controller::scan_brake::Config config;
+  config.use_scan_brake = true;
+  config.max_age_sec = 0.5;
+  config.sectors[static_cast<std::size_t>(yuyi_controller::scan_brake::SectorId::Front)] = {
+    true, 0.5
+  };
+
+  yuyi_controller::scan_brake::CachedScan cached_scan;
+  cached_scan.has_scan = true;
+  cached_scan.received_at = rclcpp::Time(0, 0, RCL_ROS_TIME);
+  cached_scan.scan = make_scan();
+  cached_scan.scan.ranges.assign(
+    cached_scan.scan.ranges.size(),
+    std::numeric_limits<float>::quiet_NaN());
+
+  const auto evaluation = yuyi_controller::scan_brake::evaluate(
+    config,
+    cached_scan,
+    rclcpp::Time(0, 100000000, RCL_ROS_TIME));
+
+  assert(evaluation.should_brake);
+}
+
 }  // namespace
 
 int main(int argc, char ** argv)
@@ -69,6 +95,7 @@ int main(int argc, char ** argv)
   classify_front_boundary_angles();
   observe_sectors_picks_nearest_valid_range();
   evaluate_brakes_when_enabled_sector_is_close();
+  evaluate_brakes_when_enabled_sector_has_no_valid_sample();
   rclcpp::shutdown();
   return 0;
 }
